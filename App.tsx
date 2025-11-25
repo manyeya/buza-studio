@@ -5,7 +5,6 @@ import Workspace from './components/Workspace';
 import TemplateLibraryModal from './components/TemplateLibraryModal';
 import VariableLibraryModal from './components/VariableLibraryModal';
 import { projectSystem } from './src/lib/project-system';
-import { TEMPLATES } from './data/templates';
 import * as GeminiService from './services/geminiService';
 import type { Project } from './src/lib/project-system';
 import type { PromptData, Variable, Template, PromptVariant, PromptVersion } from './types';
@@ -137,7 +136,7 @@ const App: React.FC = () => {
 
         // Load template library from file system
         const tmpl = await projectSystem.getTemplateLibrary();
-        setTemplates(tmpl.length > 0 ? tmpl : TEMPLATES);
+        setTemplates(tmpl);
       } catch (error) {
         console.error('Failed to initialize file system:', error);
       } finally {
@@ -200,7 +199,11 @@ const App: React.FC = () => {
         })),
         versions: []
       }],
-      projectVariables: []
+      projectVariables: template.projectVariables?.map(v => ({
+        id: crypto.randomUUID(),
+        key: v.key,
+        value: v.value
+      })) || []
     };
     setPrompts([...prompts, newPrompt]);
     setActivePromptId(newId);
@@ -214,7 +217,8 @@ const App: React.FC = () => {
       description: activePrompt.description,
       content: activeVariant.content,
       config: activeVariant.config,
-      variables: activeVariant.variables.map(v => ({ key: v.key, value: v.value }))
+      variables: activeVariant.variables.map(v => ({ key: v.key, value: v.value })),
+      projectVariables: activePrompt.projectVariables?.map(v => ({ key: v.key, value: v.value })) || []
     };
     const updated = [newTemplate, ...templates];
     await projectSystem.updateTemplateLibrary(updated);

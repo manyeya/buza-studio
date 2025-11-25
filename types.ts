@@ -48,6 +48,7 @@ export interface Template {
   content: string;
   config: PromptConfig;
   variables: { key: string; value: string }[];
+  projectVariables?: { key: string; value: string }[];
 }
 
 export enum ViewMode {
