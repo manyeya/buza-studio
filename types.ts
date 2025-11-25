@@ -39,6 +39,7 @@ export interface PromptData {
   description: string;
   activeVariantId: string;
   variants: PromptVariant[];
+  projectVariables: Variable[];
 }
 
 export interface Template {

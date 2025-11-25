@@ -29,6 +29,7 @@ export interface Project {
     name: string;
     path: string;
     variants: Variant[];
+    variables: Array<{ id: string; key: string; value: string }>;
 }
 
 /**
@@ -105,6 +106,9 @@ export class ProjectSystem {
         const projectPath = `${this.basePath}/${projectName}`;
         await mkdir(projectPath, { baseDir: BaseDirectory.Document, recursive: true });
 
+        // Create project.json with empty variables
+        await this.updateProjectVariables(projectName, []);
+
         // Create a default Main.md variant
         await this.createVariant(projectName, 'Main', '', {});
     }
@@ -177,6 +181,30 @@ export class ProjectSystem {
     }
 
     /**
+     * Get project variables
+     */
+    async getProjectVariables(projectName: string): Promise<Array<{ id: string; key: string; value: string }>> {
+        const filePath = `${this.basePath}/${projectName}/project.json`;
+        try {
+            const content = await readTextFile(filePath, { baseDir: BaseDirectory.Document });
+            const data = JSON.parse(content);
+            return data.variables || [];
+        } catch (e) {
+            // If file doesn't exist or is invalid, return empty array
+            return [];
+        }
+    }
+
+    /**
+     * Update project variables
+     */
+    async updateProjectVariables(projectName: string, variables: Array<{ id: string; key: string; value: string }>): Promise<void> {
+        const filePath = `${this.basePath}/${projectName}/project.json`;
+        const content = JSON.stringify({ variables }, null, 2);
+        await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
+    }
+
+    /**
      * Get full project with all variants
      */
     async getProject(projectName: string): Promise<Project> {
@@ -184,11 +212,13 @@ export class ProjectSystem {
         const variants = await Promise.all(
             variantNames.map(name => this.readVariant(projectName, name))
         );
+        const variables = await this.getProjectVariables(projectName);
 
         return {
             name: projectName,
             path: `${this.basePath}/${projectName}`,
-            variants
+            variants,
+            variables
         };
     }
 

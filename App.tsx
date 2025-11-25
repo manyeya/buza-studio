@@ -32,7 +32,8 @@ const INITIAL_PROMPT: PromptData = {
       ],
       versions: []
     }
-  ]
+  ],
+  projectVariables: []
 };
 
 const INITIAL_VARS: Variable[] = [
@@ -77,7 +78,8 @@ function convertProjectToPromptData(project: Project): PromptData {
     name: project.name,
     description: '',
     activeVariantId: variants[0]?.id || '',
-    variants
+    variants,
+    projectVariables: project.variables || []
   };
 }
 
@@ -206,7 +208,8 @@ const App: React.FC = () => {
           value: v.value
         })),
         versions: []
-      }]
+      }],
+      projectVariables: []
     };
     setPrompts([...prompts, newPrompt]);
     setActivePromptId(newId);
@@ -290,6 +293,16 @@ const App: React.FC = () => {
         p.id === activePromptId ? { ...p, ...updates } : p
       ));
     }
+  };
+
+  const handleUpdateProjectVariables = async (variables: Variable[]) => {
+    if (!activePrompt) return;
+    await projectSystem.updateProjectVariables(activePrompt.name, variables);
+
+    // Update local state
+    setPrompts(prev => prev.map(p =>
+      p.id === activePromptId ? { ...p, projectVariables: variables } : p
+    ));
   };
 
   const handleUpdateVariant = async (updates: Partial<PromptVariant>) => {
@@ -508,6 +521,7 @@ const App: React.FC = () => {
         onSelectPrompt={handleSelectPrompt}
         onNewPrompt={handleNewPrompt}
         onOpenTemplates={openTemplateModal}
+        onUpdateProjectVariables={handleUpdateProjectVariables}
       />
 
       {(activePrompt && activeVariant) || showWorkspaceAnyway ? (
