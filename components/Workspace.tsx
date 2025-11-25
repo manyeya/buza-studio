@@ -8,7 +8,8 @@ import 'prismjs/components/prism-javascript';
 
 // Define custom grammar for variables
 languages.prompt = {
-    'variable': /{{[\s\S]*?}}/
+    'project-variable': /@\{\{[\s\S]*?\}\}/,
+    'variable': /\{\{[\s\S]*?\}\}/
 };
 
 interface WorkspaceProps {
@@ -112,34 +113,6 @@ const Workspace: React.FC<WorkspaceProps> = ({
         }
     }, [variant.content]);
 
-    // Debounced Auto-detection of variables (Handlebars style)
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            // Find all unique matches for {{variable_name}}
-            const regex = /{{([\w-]+)}}/g;
-            const matches = [...code.matchAll(regex)];
-            const foundKeys = new Set(matches.map(m => m[1]));
-
-            // Identify keys that are not yet in the variables list
-            const existingKeys = new Set(variant.variables.map(v => v.key));
-            const newKeys = [...foundKeys].filter(k => !existingKeys.has(k));
-
-            // Only update if there are actually new variables to add
-            if (newKeys.length > 0) {
-                const newVariables = newKeys.map(key => ({
-                    id: crypto.randomUUID(),
-                    key,
-                    value: ''
-                }));
-                onUpdateVariant({
-                    variables: [...variant.variables, ...newVariables]
-                });
-            }
-        }, 800); // 800ms debounce to prevent lag on every keystroke
-
-        return () => clearTimeout(handler);
-    }, [code]); // Dependency on local code
-
     // Debounced save to parent
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -150,6 +123,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
         return () => clearTimeout(handler);
     }, [code]);
+
 
     const handleRun = async () => {
         setIsRunning(true);
@@ -196,6 +170,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
             <style>{`
                 .token.variable {
                     color: #1DB954;
+                    font-weight: bold;
+                }
+                .token.project-variable {
+                    color: #FFA500;
                     font-weight: bold;
                 }
                 /* Override editor styles to match design */
@@ -345,7 +323,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
                         </div>
                     )}
 
-                    <div className="flex-1 w-full bg-[#1e1e1e] relative z-0 overflow-y-auto prompt-editor-container custom-scrollbar">
+
+                    <div
+                        className="flex-1 w-full bg-[#1e1e1e] relative z-0 overflow-y-auto prompt-editor-container custom-scrollbar"
+                    >
                         <Editor
                             value={code}
                             onValueChange={(newCode) => setCode(newCode)}

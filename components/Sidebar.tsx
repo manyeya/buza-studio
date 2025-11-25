@@ -10,11 +10,13 @@ interface SidebarProps {
   onNewPrompt: () => void;
   onOpenTemplates: () => void;
   onUpdateProjectVariables: (variables: any[]) => void;
+  onInsertVariable?: (variableKey: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectPrompt, onNewPrompt, onOpenTemplates, onUpdateProjectVariables }) => {
+const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectPrompt, onNewPrompt, onOpenTemplates, onUpdateProjectVariables, onInsertVariable }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [copiedVarId, setCopiedVarId] = useState<string | null>(null);
 
   const activePrompt = prompts.find(p => p.id === activePromptId);
 
@@ -160,18 +162,43 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-1">
                     <div
-                      className="flex-1 cursor-pointer"
                       onClick={() => {
+                        navigator.clipboard.writeText(`@{{${variable.key}}}`);
+                        setCopiedVarId(variable.id);
+                        setTimeout(() => setCopiedVarId(null), 2000);
+                      }}
+                      onDoubleClick={() => {
                         setEditingVarId(variable.id);
                         setTempVarKey(variable.key);
                         setTempVarValue(variable.value);
                       }}
+                      className="flex-1 cursor-pointer hover:bg-figma-bg/70 rounded px-1 -mx-1 transition-colors"
+                      title={copiedVarId === variable.id ? "Copied!" : "Click to copy, double-click to edit"}
                     >
-                      <div className="text-xs font-medium text-figma-accent truncate" title={variable.key}>{variable.key}</div>
-                      <div className="text-[11px] text-figma-muted truncate" title={variable.value}>{variable.value}</div>
+                      <div className="text-xs font-medium text-figma-accent truncate flex items-center gap-1">
+                        {variable.key}
+                        {copiedVarId === variable.id && (
+                          <span className="text-[10px] text-green-400">✓</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-figma-muted truncate">{variable.value}</div>
                     </div>
+                    {onInsertVariable && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onInsertVariable(variable.key);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-figma-hover rounded transition-opacity"
+                        title="Insert into editor"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8 2.75C8 2.47386 7.77614 2.25 7.5 2.25C7.22386 2.25 7 2.47386 7 2.75V7H2.75C2.47386 7 2.25 7.22386 2.25 7.5C2.25 7.77614 2.47386 8 2.75 8H7V12.25C7 12.5261 7.22386 12.75 7.5 12.75C7.77614 12.75 8 12.5261 8 12.25V8H12.25C12.5261 8 12.75 7.77614 12.75 7.5C12.75 7.22386 12.5261 7 12.25 7H8V2.75Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

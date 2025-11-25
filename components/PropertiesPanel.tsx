@@ -158,9 +158,22 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     const generateExport = () => {
         const variablesMap = activeVariant.variables.reduce((acc, v) => ({ ...acc, [v.key]: v.value }), {} as Record<string, string>);
 
+        // Replace variables in content for export
+        let processedContent = activeVariant.content;
+
+        // First replace @{{}} (project variables)
+        prompt.projectVariables?.forEach(v => {
+            processedContent = processedContent.replace(new RegExp(`@\\{\\{${v.key}\\}\\}`, 'g'), v.value);
+        });
+
+        // Then replace {{}} (variant variables)
+        activeVariant.variables.forEach(v => {
+            processedContent = processedContent.replace(new RegExp(`\\{\\{${v.key}\\}\\}`, 'g'), v.value);
+        });
+
         const exportData: any = {
             name: activeVariant.name,
-            prompt: activeVariant.content,
+            prompt: processedContent,
         };
 
         if (activeVariant.config.systemInstruction) {
@@ -214,8 +227,15 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
         if (exportFormat === 'PROMPT') {
             let text = activeVariant.content;
+
+            // First replace @{{}} (project variables)
+            prompt.projectVariables?.forEach(v => {
+                text = text.replace(new RegExp(`@\\{\\{${v.key}\\}\\}`, 'g'), v.value);
+            });
+
+            // Then replace {{}} (variant variables)
             activeVariant.variables.forEach(v => {
-                text = text.replace(new RegExp(`{{${v.key}}}`, 'g'), v.value);
+                text = text.replace(new RegExp(`\\{\\{${v.key}\\}\\}`, 'g'), v.value);
             });
 
             let result = "";
@@ -297,8 +317,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 <button
                     onClick={() => setActiveTab('SETTINGS')}
                     className={`flex-1 text-[11px] font-medium tracking-wide border-b-2 transition-all focus:outline-none ${activeTab === 'SETTINGS'
-                            ? 'border-figma-accent text-white'
-                            : 'border-transparent text-figma-muted hover:text-white'
+                        ? 'border-figma-accent text-white'
+                        : 'border-transparent text-figma-muted hover:text-white'
                         }`}
                 >
                     SETTINGS
@@ -306,8 +326,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 <button
                     onClick={() => setActiveTab('VERSIONS')}
                     className={`flex-1 text-[11px] font-medium tracking-wide border-b-2 transition-all focus:outline-none ${activeTab === 'VERSIONS'
-                            ? 'border-figma-accent text-white'
-                            : 'border-transparent text-figma-muted hover:text-white'
+                        ? 'border-figma-accent text-white'
+                        : 'border-transparent text-figma-muted hover:text-white'
                         }`}
                 >
                     HISTORY

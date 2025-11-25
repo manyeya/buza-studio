@@ -305,6 +305,14 @@ const App: React.FC = () => {
     ));
   };
 
+  const handleInsertVariable = (variableKey: string) => {
+    if (!activeVariant) return;
+    const variableText = `@{{${variableKey}}}`;
+    const currentContent = activeVariant.content;
+    const newContent = currentContent ? `${currentContent} ${variableText}` : variableText;
+    handleUpdateVariant({ content: newContent });
+  };
+
   const handleUpdateVariant = async (updates: Partial<PromptVariant>) => {
     if (!activeVariant || !activePrompt) return;
 
@@ -457,9 +465,17 @@ const App: React.FC = () => {
   const closeVariableLibrary = () => setIsVariableLibraryOpen(false);
 
   const handleRunPrompt = async () => {
-    if (!activeVariant) return;
+    if (!activeVariant || !activePrompt) return;
 
+    // Merge variables: project variables as base, variant variables override
     const vars: Record<string, string> = {};
+
+    // Add project variables first
+    activePrompt.projectVariables?.forEach(v => {
+      vars[v.key] = v.value;
+    });
+
+    // Add/override with variant variables
     activeVariant.variables.forEach(v => {
       vars[v.key] = v.value;
     });
@@ -522,6 +538,7 @@ const App: React.FC = () => {
         onNewPrompt={handleNewPrompt}
         onOpenTemplates={openTemplateModal}
         onUpdateProjectVariables={handleUpdateProjectVariables}
+        onInsertVariable={handleInsertVariable}
       />
 
       {(activePrompt && activeVariant) || showWorkspaceAnyway ? (
