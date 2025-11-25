@@ -1,6 +1,7 @@
 import React from 'react';
 import { PromptData } from '../types';
-import { FileTextIcon, PlusIcon, BoxIcon, GridIcon } from './Icons';
+import { FileTextIcon, PlusIcon, BoxIcon, GridIcon, ChevronDownIcon } from './Icons';
+import { useState, useRef, useEffect } from 'react';
 
 interface SidebarProps {
   prompts: PromptData[];
@@ -11,6 +12,21 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectPrompt, onNewPrompt, onOpenTemplates }) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const activePrompt = prompts.find(p => p.id === activePromptId);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div className="w-64 h-full bg-figma-panel border-r border-figma-border flex flex-col">
       {/* Header */}
@@ -28,38 +44,50 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
         </div>
       </div>
 
-      {/* Tools / Sections */}
-      <div className="p-2 border-b border-figma-border">
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-figma-hover cursor-pointer text-xs font-medium text-figma-text">
-          <BoxIcon className="w-4 h-4 text-figma-muted" />
-          <span>All Prompts</span>
-        </div>
-      </div>
-
-      {/* List */}
-      <div className="flex-1 overflow-y-auto py-2">
-        <div className="px-3 mb-2 text-[10px] font-bold text-figma-muted uppercase tracking-wider">
-          Your Projects
-        </div>
-
-        {prompts.length === 0 && (
-          <div className="px-4 py-4 text-xs text-figma-muted text-center italic">
-            No prompts yet. Create one!
-          </div>
-        )}
-
-        {prompts.map((prompt) => (
-          <div
-            key={prompt.id}
-            onClick={() => onSelectPrompt(prompt.id)}
-            className={`group px-3 py-2 mx-2 rounded cursor-pointer flex items-center gap-2 text-xs mb-0.5 transition-colors
-  ${activePromptId === prompt.id ? 'bg-figma-accent text-black font-medium' : 'text-figma-muted hover:bg-figma-hover hover:text-white'}`}
+      {/* Project Switcher Dropdown */}
+      <div className="p-3 border-b border-figma-border">
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 bg-figma-bg border border-figma-border rounded text-xs text-white hover:border-figma-muted transition-colors"
           >
-            <FileTextIcon className={`w-3.5 h-3.5 ${activePromptId === prompt.id ? 'text-black' : 'text-figma-muted group-hover:text-white'}`} />
-            <span className="truncate">{prompt.name}</span>
-          </div>
-        ))}
+            <div className="flex items-center gap-2 truncate">
+              <BoxIcon className="w-3.5 h-3.5 text-figma-accent" />
+              <span className="truncate font-medium">{activePrompt?.name || 'Select Project'}</span>
+            </div>
+            <ChevronDownIcon className={`w-3 h-3 text-figma-muted transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isDropdownOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-figma-panel border border-figma-border rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">
+              <div className="px-3 py-2 text-[10px] font-bold text-figma-muted uppercase tracking-wider border-b border-figma-border sticky top-0 bg-figma-panel">
+                Your Projects
+              </div>
+              {prompts.length === 0 && (
+                <div className="px-4 py-3 text-xs text-figma-muted text-center italic">
+                  No projects yet.
+                </div>
+              )}
+              {prompts.map((prompt) => (
+                <button
+                  key={prompt.id}
+                  onClick={() => {
+                    onSelectPrompt(prompt.id);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-figma-hover transition-colors flex items-center gap-2 ${activePromptId === prompt.id ? 'text-figma-accent bg-figma-hover/50' : 'text-white'}`}
+                >
+                  <FileTextIcon className={`w-3.5 h-3.5 ${activePromptId === prompt.id ? 'text-figma-accent' : 'text-figma-muted'}`} />
+                  <span className="truncate">{prompt.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Spacer to push footer down if needed, or just empty space */}
+      <div className="flex-1"></div>
 
       {/* Footer / Add New */}
       <div className="p-3 border-t border-figma-border space-y-2">

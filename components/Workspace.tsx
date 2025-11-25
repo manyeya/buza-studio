@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { PromptData, PromptVariant } from '../types';
 import { PlayIcon, MagicIcon, CopyIcon, SparklesIcon, KeyboardIcon } from './Icons';
