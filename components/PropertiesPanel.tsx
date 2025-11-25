@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { PromptData, Variable, PromptVersion, PromptVariant } from '../types';
 import { CopyIcon, BookmarkIcon, RotateCcwIcon, PlusIcon, LayersIcon, TrashIcon, BookIcon } from './Icons';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface PropertiesPanelProps {
     prompt: PromptData;
@@ -41,19 +43,19 @@ const VariableRow = ({
             <div className="flex items-center">
                 <span className="text-figma-accent text-xs font-mono select-none">{'{{'}</span>
 
-                {/* Auto-resizing input using inline-grid stack */}
+                {/* Auto-resizing textarea using inline-grid stack */}
                 <div className="inline-grid grid-cols-[min-content] items-center">
                     {/* Invisible span triggers width expansion based on content */}
                     <span className="col-start-1 row-start-1 font-mono text-xs invisible whitespace-pre px-0.5 pointer-events-none border-none outline-none h-0 opacity-0 overflow-hidden">
                         {v.key || 'name'}
                     </span>
-                    <input
-                        type="text"
+                    <textarea
                         value={v.key}
                         onChange={(e) => onUpdateKey(v.id, e.target.value)}
-                        className="col-start-1 row-start-1 w-full min-w-0 bg-transparent text-xs text-figma-accent font-mono border-none focus:ring-0 p-0 px-0.5 focus:outline-none placeholder-figma-muted/40"
+                        className="col-start-1 row-start-1 w-full min-w-0 bg-transparent text-xs text-figma-accent font-mono border-none focus:ring-0 p-0 px-0.5 focus:outline-none placeholder-figma-muted/40 resize-none"
                         placeholder="name"
                         spellCheck={false}
+                        rows={1}
                     />
                 </div>
 
@@ -74,7 +76,7 @@ const VariableRow = ({
                 </div>
             </div>
             <textarea
-                className="w-full bg-[#111] border border-[#333] rounded p-1.5 text-xs text-gray-300 focus:outline-none resize-none focus:border-figma-border"
+                className="w-full bg-[#111] border border-[#333] rounded p-1.5 text-xs text-gray-300 focus:outline-none focus:border-figma-border"
                 rows={1}
                 placeholder="Test value"
                 value={v.value}
@@ -233,6 +235,20 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         setTimeout(() => setCopyFeedback(false), 2000);
     };
 
+    const getSyntaxLanguage = () => {
+        switch (exportFormat) {
+            case 'JSON':
+                return 'json';
+            case 'YAML':
+                return 'yaml';
+            case 'XML':
+                return 'xml';
+            case 'PROMPT':
+            default:
+                return 'text';
+        }
+    };
+
     return (
         <div className="w-80 bg-figma-panel border-l border-figma-border flex flex-col h-full">
 
@@ -305,7 +321,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                         <div className="p-4 border-b border-figma-border">
                             <label className="block text-[11px] text-figma-muted mb-1.5 font-medium">Description</label>
                             <textarea
-                                className="w-full bg-figma-bg border border-figma-border rounded p-2 text-xs text-white placeholder-figma-muted/30 focus:border-figma-accent focus:outline-none resize-none transition-colors"
+                                className="w-full bg-figma-bg border border-figma-border rounded p-2 text-xs text-white placeholder-figma-muted/30 focus:border-figma-accent focus:outline-none transition-colors"
                                 rows={2}
                                 placeholder="Describe this project..."
                                 value={prompt.description}
@@ -365,7 +381,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                         <div className="p-4 border-b border-figma-border">
                             <label className="block text-[11px] text-figma-muted mb-1.5 font-medium">System Instruction</label>
                             <textarea
-                                className="w-full bg-figma-bg border border-figma-border rounded p-2 text-xs text-white placeholder-figma-muted/30 focus:border-figma-accent focus:outline-none resize-none"
+                                className="w-full bg-figma-bg border border-figma-border rounded p-2 text-xs text-white placeholder-figma-muted/30 focus:border-figma-accent focus:outline-none"
                                 rows={3}
                                 placeholder="You are a helpful assistant..."
                                 value={activeVariant.config.systemInstruction || ''}
@@ -431,14 +447,28 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 </div>
                             </div>
                             <div className="relative group">
-                                <textarea
-                                    readOnly
-                                    value={generateExport()}
-                                    className="w-full h-32 bg-[#1a1a1a] border border-figma-border rounded p-2 text-[10px] font-mono text-gray-400 focus:outline-none resize-none"
-                                />
+                                <div className="w-full min-h-32 max-h-96 bg-[#1a1a1a] border border-figma-border rounded overflow-auto resize-y">
+                                    <SyntaxHighlighter
+                                        language={getSyntaxLanguage()}
+                                        style={oneDark}
+                                        customStyle={{
+                                            margin: 0,
+                                            padding: '8px',
+                                            background: 'transparent',
+                                            fontSize: '10px',
+                                            lineHeight: '1.4'
+                                        }}
+                                        codeTagProps={{ style: { fontSize: '10px' } }}
+                                        showLineNumbers={false}
+                                        wrapLines={true}
+                                        wrapLongLines={true}
+                                    >
+                                        {generateExport()}
+                                    </SyntaxHighlighter>
+                                </div>
                                 <button
                                     onClick={copyToClipboard}
-                                    className="absolute top-2 right-2 p-1.5 bg-figma-panel border border-figma-border rounded text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-figma-hover shadow-lg"
+                                    className="absolute top-2 right-2 p-1.5 bg-figma-panel border border-figma-border rounded text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-figma-hover shadow-lg z-10"
                                     title="Copy"
                                 >
                                     {copyFeedback ? (
@@ -458,12 +488,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                         <div className="p-4 border-b border-figma-border bg-figma-bg">
                             <label className="block text-[11px] text-figma-muted mb-2 font-medium">Create Snapshot (Current Variant)</label>
                             <div className="flex gap-2">
-                                <input
-                                    type="text"
+                                <textarea
                                     placeholder="Version Name (e.g. 'Creative Draft')"
                                     value={versionName}
                                     onChange={(e) => setVersionName(e.target.value)}
                                     className="flex-1 bg-figma-panel border border-figma-border rounded px-2 py-1.5 text-xs text-white focus:border-figma-accent focus:outline-none"
+                                    rows={1}
                                 />
                                 <button
                                     onClick={handleSaveVersionClick}

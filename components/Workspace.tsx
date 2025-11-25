@@ -119,7 +119,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
     return (
         <div className="flex-1 flex flex-col h-full bg-figma-bg relative overflow-hidden">
             {/* Top Toolbar */}
-            <div className="h-12 border-b border-figma-border flex items-center justify-between px-4 bg-figma-bg">
+            <div className="h-14 border-b border-figma-border flex items-center justify-between px-4 bg-figma-bg">
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col">
                         <input
