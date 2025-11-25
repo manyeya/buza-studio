@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Template, Variable } from '../../types';
-import { TEMPLATES } from '../../data/templates';
 import { projectSystem } from '../lib/project-system';
 
 export function useLibraryQueries() {
@@ -11,10 +10,6 @@ export function useLibraryQueries() {
         queryKey: ['templates'],
         queryFn: async () => {
             const templates = await projectSystem.getTemplateLibrary();
-            // If no templates exist, return default templates
-            if (templates.length === 0) {
-                return TEMPLATES;
-            }
             return templates;
         },
         staleTime: 5 * 60 * 1000,
