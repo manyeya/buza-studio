@@ -18,48 +18,6 @@ export function useProjects() {
         // Initialize project system
         await projectSystem.initialize();
 
-        // Check for localStorage data to migrate
-        const savedPrompts = localStorage.getItem('promptStudio_data');
-        if (savedPrompts) {
-          try {
-            const parsed = JSON.parse(savedPrompts);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              // Migrate localStorage data to file system
-              for (const prompt of parsed) {
-                const projectName = prompt.name || 'Untitled';
-
-                // Create project
-                await projectSystem.createProject(projectName);
-
-                // Create variants
-                if (prompt.variants && Array.isArray(prompt.variants)) {
-                  for (const variant of prompt.variants) {
-                    await projectSystem.createVariant(
-                      projectName,
-                      variant.name,
-                      variant.content,
-                      {
-                        model: variant.config?.model,
-                        temperature: variant.config?.temperature,
-                        maxTokens: variant.config?.maxOutputTokens,
-                        topK: variant.config?.topK,
-                        systemInstruction: variant.config?.systemInstruction,
-                        variables: variant.variables || []
-                      }
-                    );
-                  }
-                }
-              }
-
-              // Clear localStorage after migration
-              localStorage.removeItem('promptStudio_data');
-              console.log('Migrated localStorage data to file system');
-            }
-          } catch (e) {
-            console.error("Failed to migrate localStorage data", e);
-          }
-        }
-
         // Query will load the projects automatically through TanStack Query
         // Set first project as active if available
         if (projectsQuery.data && projectsQuery.data.length > 0) {
