@@ -131,15 +131,9 @@ const App: React.FC = () => {
           setActivePromptId(promptData.id);
         }
 
-        const savedVars = localStorage.getItem('promptStudio_vars');
-        if (savedVars) {
-          try {
-            const parsedVars = JSON.parse(savedVars);
-            if (Array.isArray(parsedVars)) setVariableLibrary(parsedVars);
-          } catch (e) {
-            console.error("Failed to load variables", e);
-          }
-        }
+        // Load variable library from file system
+        const vars = await projectSystem.getVariableLibrary();
+        setVariableLibrary(vars);
       } catch (error) {
         console.error('Failed to initialize file system:', error);
       } finally {
@@ -154,14 +148,13 @@ const App: React.FC = () => {
   const activePrompt = prompts.find(p => p.id === activePromptId) || null;
   const activeVariant = activePrompt?.variants.find(v => v.id === activePrompt.activeVariantId) || null;
 
-  // Sync localStorage
+  // Sync templates to localStorage (templates still use localStorage)
   useEffect(() => {
     localStorage.setItem('promptStudio_templates', JSON.stringify(templates));
   }, [templates]);
 
-  useEffect(() => {
-    localStorage.setItem('promptStudio_vars', JSON.stringify(variableLibrary));
-  }, [variableLibrary]);
+  // Variable library is now synced to file system automatically via mutations
+  // No need for useEffect
 
   // Event handlers
   const handleSelectPrompt = (id: string) => {
@@ -228,20 +221,27 @@ const App: React.FC = () => {
     setTemplates([newTemplate, ...templates]);
   };
 
-  const handleAddToLibrary = (variable: Variable) => {
+  const handleAddToLibrary = async (variable: Variable) => {
     const existing = variableLibrary.find(v => v.key === variable.key);
     if (existing) {
       const confirmUpdate = window.confirm(`Variable "{{${variable.key}}}" already exists. Update it?`);
       if (confirmUpdate) {
-        setVariableLibrary(prev => prev.map(v => v.key === variable.key ? { ...v, value: variable.value } : v));
+        const updated = variableLibrary.map(v => v.key === variable.key ? { ...v, value: variable.value } : v);
+        await projectSystem.updateVariableLibrary(updated);
+        setVariableLibrary(updated);
       }
     } else {
-      setVariableLibrary(prev => [...prev, { ...variable, id: crypto.randomUUID() }]);
+      const newVar = { ...variable, id: crypto.randomUUID() };
+      const updated = [...variableLibrary, newVar];
+      await projectSystem.updateVariableLibrary(updated);
+      setVariableLibrary(updated);
     }
   };
 
-  const handleRemoveFromLibrary = (id: string) => {
-    setVariableLibrary(prev => prev.filter(v => v.id !== id));
+  const handleRemoveFromLibrary = async (id: string) => {
+    const updated = variableLibrary.filter(v => v.id !== id);
+    await projectSystem.updateVariableLibrary(updated);
+    setVariableLibrary(updated);
   };
 
   const handleImportVariable = async (variable: Variable) => {

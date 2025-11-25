@@ -53,6 +53,16 @@ function parseFrontmatter(content: string): { metadata: VariantMetadata; body: s
             const value = valueParts.join(':').trim();
             const trimmedKey = key.trim();
 
+            // Try to parse as JSON first (for arrays and objects)
+            if (value.startsWith('[') || value.startsWith('{')) {
+                try {
+                    metadata[trimmedKey] = JSON.parse(value);
+                    return;
+                } catch (e) {
+                    // If JSON parse fails, treat as string
+                }
+            }
+
             // Try to parse as number or boolean
             if (value === 'true') metadata[trimmedKey] = true;
             else if (value === 'false') metadata[trimmedKey] = false;
@@ -73,6 +83,10 @@ function serializeFrontmatter(metadata: VariantMetadata, content: string): strin
     }
 
     const yamlLines = Object.entries(metadata).map(([key, value]) => {
+        // Handle arrays and objects by JSON stringifying them
+        if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+            return `${key}: ${JSON.stringify(value)}`;
+        }
         if (typeof value === 'string') {
             return `${key}: "${value}"`;
         }
@@ -238,6 +252,34 @@ export class ProjectSystem {
         const { remove } = await import('@tauri-apps/plugin-fs');
         const projectPath = `${this.basePath}/${projectName}`;
         await remove(projectPath, { baseDir: BaseDirectory.Document, recursive: true });
+    }
+
+    /**
+     * Get variable library
+     */
+    async getVariableLibrary(): Promise<Array<{ id: string; key: string; value: string }>> {
+        const filePath = `${this.basePath}/library.json`;
+        try {
+            const content = await readTextFile(filePath, { baseDir: BaseDirectory.Document });
+            const data = JSON.parse(content);
+            return data.variables || [];
+        } catch (e) {
+            // If file doesn't exist or is invalid, return default variables
+            return [
+                { id: 'glob-1', key: 'tone', value: 'Professional' },
+                { id: 'glob-2', key: 'audience', value: 'Experts' },
+                { id: 'glob-3', key: 'output_format', value: 'JSON' }
+            ];
+        }
+    }
+
+    /**
+     * Update variable library
+     */
+    async updateVariableLibrary(variables: Array<{ id: string; key: string; value: string }>): Promise<void> {
+        const filePath = `${this.basePath}/library.json`;
+        const content = JSON.stringify({ variables }, null, 2);
+        await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
     }
 }
 
