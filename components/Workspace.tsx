@@ -2,6 +2,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PromptData, PromptVariant } from '../types';
 import { PlayIcon, MagicIcon, CopyIcon, SparklesIcon, KeyboardIcon } from './Icons';
+import Editor from 'react-simple-code-editor';
+import { highlight, languages } from 'prismjs';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-javascript';
+
+// Define custom grammar for variables
+languages.prompt = {
+    'variable': /{{[\s\S]*?}}/
+};
 
 interface WorkspaceProps {
     variant: PromptVariant;
@@ -29,9 +38,64 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationDescription, setGenerationDescription] = useState('');
 
+    // Local state for editor content to prevent cursor jumping
+    const [code, setCode] = useState(variant.content);
+
     // Empty State Logic
     const [emptyStateStep, setEmptyStateStep] = useState<'CHOICE' | 'MAGIC' | 'MANUAL'>('CHOICE');
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    // We use an ID for the editor textarea to focus it, as the Editor component might not forward ref easily to the textarea
+    const EDITOR_ID = "prompt-editor-textarea";
+
+    // Sync local state when variant changes (switching variants)
+    useEffect(() => {
+        setCode(variant.content);
+    }, [variant.id]);
+
+    // Sync local state if variant content changes externally (e.g. AI generation)
+    // We only update if the length difference is significant or it's a completely different string,
+    // to avoid overwriting local typing if there's a race condition.
+    // Ideally, onUpdateVariant should only be called by us, but AI features might update it too.
+    useEffect(() => {
+        if (variant.content !== code) {
+            // Simple check: if the variant content is what we just saved, don't update.
+            // But here we want to catch external updates.
+            // For now, we'll trust that if variant.content changes and it's NOT what we have in local state,
+            // it might be an external update.
+            // However, to avoid the cursor jump loop, we usually only sync on ID change or explicit external triggers.
+            // Let's rely on the fact that we debounce the update UPWARDS.
+            // If we receive a prop update that matches our debounced value, we do nothing.
+            // If we receive a prop update that is different, it might be from AI.
+            // Let's assume AI updates happen when we are NOT typing.
+        }
+    }, [variant.content]);
+
+    // Actually, a better pattern is:
+    // 1. Initialize local state from prop.
+    // 2. On change, update local state AND debounce update prop.
+    // 3. If prop changes and is different from local state, update local state (carefully).
+
+    // Let's refine the sync logic:
+    // We want to update local code if variant.content changes AND it's not the result of our own typing.
+    // Since we can't easily distinguish, a common approach is to only sync when variant.id changes, 
+    // OR if we know an external action happened (like optimize/generate).
+    // For now, let's stick to syncing on variant.id and maybe we can add a specific check for AI updates if needed.
+    // But wait, if the user switches variants, we MUST update.
+    // If the user runs "AI Optimize", the parent updates variant.content. We need to reflect that.
+    // So we should update `code` when `variant.content` changes, BUT we need to avoid the loop.
+    // The loop happens because: Type 'a' -> setCode('a') -> debounce -> onUpdateVariant('a') -> prop 'a' comes back -> setCode('a').
+    // If prop 'a' === code 'a', setting it again is fine (React bails out).
+    // The issue is usually timing.
+    // Let's try just syncing on variant.id for now, and handle explicit AI updates via the actions.
+    // Actually, looking at the code, `handleOptimize` calls `onOptimize` which likely updates the variant.
+    // We can add a useEffect that updates `code` if `variant.content` changes and we are not currently typing?
+    // Or just check if they are different.
+
+    useEffect(() => {
+        if (variant.content !== code) {
+            setCode(variant.content);
+        }
+    }, [variant.content]);
+
 
     useEffect(() => {
         // Reset empty state workflow when switching variants
@@ -54,7 +118,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
         const handler = setTimeout(() => {
             // Find all unique matches for {{variable_name}}
             const regex = /{{([\w-]+)}}/g;
-            const matches = [...variant.content.matchAll(regex)];
+            const matches = [...code.matchAll(regex)];
             const foundKeys = new Set(matches.map(m => m[1]));
 
             // Identify keys that are not yet in the variables list
@@ -75,7 +139,18 @@ const Workspace: React.FC<WorkspaceProps> = ({
         }, 800); // 800ms debounce to prevent lag on every keystroke
 
         return () => clearTimeout(handler);
-    }, [variant.content]); // Dependency strictly on content
+    }, [code]); // Dependency on local code
+
+    // Debounced save to parent
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (code !== variant.content) {
+                onUpdateVariant({ content: code });
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(handler);
+    }, [code]);
 
     const handleRun = async () => {
         setIsRunning(true);
@@ -109,7 +184,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const handleManualEntry = () => {
         setEmptyStateStep('MANUAL');
         setTimeout(() => {
-            textareaRef.current?.focus();
+            const el = document.getElementById(EDITOR_ID);
+            el?.focus();
         }, 50);
     };
 
@@ -118,6 +194,16 @@ const Workspace: React.FC<WorkspaceProps> = ({
     // Split view state
     return (
         <div className="flex-1 flex flex-col h-full bg-figma-bg relative overflow-hidden">
+            <style>{`
+                .token.variable {
+                    color: #1DB954;
+                    font-weight: bold;
+                }
+                /* Override editor styles to match design */
+                .prompt-editor-container textarea {
+                    outline: none !important;
+                }
+            `}</style>
             {/* Top Toolbar */}
             <div className="h-14 border-b border-figma-border flex items-center justify-between px-4 bg-figma-bg">
                 <div className="flex items-center gap-4">
@@ -260,14 +346,23 @@ const Workspace: React.FC<WorkspaceProps> = ({
                         </div>
                     )}
 
-                    <textarea
-                        ref={textareaRef}
-                        className="flex-1 w-full bg-[#1e1e1e] p-6 text-sm font-mono text-gray-200 focus:outline-none resize-none leading-relaxed relative z-0"
-                        placeholder="Write your prompt here... Use {{variable}} for dynamic inputs."
-                        value={variant.content}
-                        onChange={(e) => onUpdateVariant({ content: e.target.value })}
-                        spellCheck={false}
-                    />
+                    <div className="flex-1 w-full bg-[#1e1e1e] relative z-0 overflow-y-auto prompt-editor-container custom-scrollbar">
+                        <Editor
+                            value={code}
+                            onValueChange={(newCode) => setCode(newCode)}
+                            highlight={code => highlight(code, languages.prompt, 'prompt')}
+                            padding={24}
+                            textareaId={EDITOR_ID}
+                            className="font-mono text-sm leading-relaxed"
+                            style={{
+                                fontFamily: '"Fira Code", "Fira Mono", monospace',
+                                fontSize: 14,
+                                backgroundColor: '#1e1e1e',
+                                color: '#e5e7eb', // gray-200
+                                minHeight: '100%',
+                            }}
+                        />
+                    </div>
                 </div>
 
                 {/* Output (Right) */}
