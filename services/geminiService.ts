@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { PromptConfig } from "../types";
+import Handlebars from "handlebars";
 
 const getClient = () => {
   const apiKey = process.env.API_KEY;
@@ -17,12 +18,17 @@ export const runPrompt = async (
 ): Promise<string> => {
   try {
     const ai = getClient();
-    
-    // Interpolate variables
-    let finalPrompt = promptText;
+
+    // First, replace @{{key}} syntax (project variables) with placeholder values
+    let processedPrompt = promptText;
     Object.entries(variables).forEach(([key, value]) => {
-      finalPrompt = finalPrompt.replace(new RegExp(`{{${key}}}`, 'g'), value);
+      const projectVarRegex = new RegExp(`@{{${key}}}`, 'g');
+      processedPrompt = processedPrompt.replace(projectVarRegex, value);
     });
+
+    // Then use Handlebars for {{key}} syntax (variant variables)
+    const template = Handlebars.compile(processedPrompt);
+    const finalPrompt = template(variables);
 
     const generateConfig: any = {
       temperature: config.temperature,
@@ -123,7 +129,7 @@ export const generatePromptStructure = async (description: string): Promise<{
     });
 
     if (response.text) {
-        return JSON.parse(response.text);
+      return JSON.parse(response.text);
     }
     throw new Error("No response generated");
 
