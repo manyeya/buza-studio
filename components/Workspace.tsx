@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PromptData, PromptVariant } from '../types';
 import { PlayIcon, MagicIcon, CopyIcon, SparklesIcon, KeyboardIcon } from './Icons';
-import * as GeminiService from '../services/geminiService';
 
 interface WorkspaceProps {
     variant: PromptVariant;
@@ -10,9 +9,21 @@ interface WorkspaceProps {
     onUpdateVariant: (updated: Partial<PromptVariant>) => void;
     onUpdateProject: (updated: Partial<PromptData>) => void;
     onSave: () => void;
+    onRun: () => void;
+    onOptimize: () => void;
+    onGenerateStructure: (description: string) => void;
 }
 
-const Workspace: React.FC<WorkspaceProps> = ({ variant, projectName, onUpdateVariant, onUpdateProject, onSave }) => {
+const Workspace: React.FC<WorkspaceProps> = ({
+    variant,
+    projectName,
+    onUpdateVariant,
+    onUpdateProject,
+    onSave,
+    onRun,
+    onOptimize,
+    onGenerateStructure
+}) => {
     const [isRunning, setIsRunning] = useState(false);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -68,32 +79,13 @@ const Workspace: React.FC<WorkspaceProps> = ({ variant, projectName, onUpdateVar
 
     const handleRun = async () => {
         setIsRunning(true);
-
-        // Prepare variables map
-        const vars: Record<string, string> = {};
-        variant.variables.forEach(v => {
-            vars[v.key] = v.value;
-        });
-
-        const output = await GeminiService.runPrompt(variant.content, variant.config, vars);
-
-        onUpdateVariant({
-            lastOutput: output,
-            lastRunTime: Date.now()
-        });
-
+        await onRun();
         setIsRunning(false);
     };
 
     const handleOptimize = async () => {
-        if (!variant.content.trim()) return;
-
         setIsOptimizing(true);
-        const optimizedContent = await GeminiService.optimizePrompt(variant.content);
-
-        if (optimizedContent !== variant.content) {
-            onUpdateVariant({ content: optimizedContent });
-        }
+        await onOptimize();
         setIsOptimizing(false);
     };
 
@@ -101,22 +93,8 @@ const Workspace: React.FC<WorkspaceProps> = ({ variant, projectName, onUpdateVar
         if (!generationDescription.trim()) return;
         setIsGenerating(true);
         try {
-            const result = await GeminiService.generatePromptStructure(generationDescription);
-            onUpdateVariant({
-                content: result.content,
-                config: {
-                    ...variant.config,
-                    systemInstruction: result.systemInstruction || '',
-                    model: result.model || variant.config.model
-                },
-                variables: result.variables.map(v => ({
-                    id: crypto.randomUUID(),
-                    key: v.key,
-                    value: v.value
-                }))
-            });
+            await onGenerateStructure(generationDescription);
             setGenerationDescription('');
-            // The useEffect will catch the content update and switch to MANUAL (hiding overlay)
         } catch (e) {
             console.error(e);
         } finally {
