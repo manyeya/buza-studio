@@ -9,9 +9,10 @@ interface SidebarProps {
   onSelectPrompt: (id: string) => void;
   onNewPrompt: () => void;
   onOpenTemplates: () => void;
+  onUpdateProjectVariables: (variables: any[]) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectPrompt, onNewPrompt, onOpenTemplates }) => {
+const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectPrompt, onNewPrompt, onOpenTemplates, onUpdateProjectVariables }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +27,34 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const [editingVarId, setEditingVarId] = useState<string | null>(null);
+  const [tempVarKey, setTempVarKey] = useState('');
+  const [tempVarValue, setTempVarValue] = useState('');
+
+  const handleAddVariable = () => {
+    if (!activePrompt) return;
+    const newVar = { id: crypto.randomUUID(), key: 'new_var', value: 'value' };
+    onUpdateProjectVariables([...(activePrompt.projectVariables || []), newVar]);
+    setEditingVarId(newVar.id);
+    setTempVarKey(newVar.key);
+    setTempVarValue(newVar.value);
+  };
+
+  const handleSaveVariable = () => {
+    if (!activePrompt || !editingVarId) return;
+    const updatedVars = (activePrompt.projectVariables || []).map(v =>
+      v.id === editingVarId ? { ...v, key: tempVarKey, value: tempVarValue } : v
+    );
+    onUpdateProjectVariables(updatedVars);
+    setEditingVarId(null);
+  };
+
+  const handleDeleteVariable = (id: string) => {
+    if (!activePrompt) return;
+    const updatedVars = (activePrompt.projectVariables || []).filter(v => v.id !== id);
+    onUpdateProjectVariables(updatedVars);
+  };
 
   return (
     <div className="w-64 h-full bg-figma-panel border-r border-figma-border flex flex-col">
@@ -86,8 +115,83 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
         </div>
       </div>
 
-      {/* Spacer to push footer down if needed, or just empty space */}
-      <div className="flex-1"></div>
+      {/* Project Variables Section */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] font-bold text-figma-muted uppercase tracking-wider">
+              Project Variables
+            </div>
+            <button
+              onClick={handleAddVariable}
+              className="text-figma-muted hover:text-white transition-colors"
+              title="Add Variable"
+            >
+              <PlusIcon className="w-3 h-3" />
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {activePrompt?.projectVariables?.map((variable) => (
+              <div key={variable.id} className="group flex flex-col gap-1 p-2 rounded hover:bg-figma-bg/50 border border-transparent hover:border-figma-border transition-all">
+                {editingVarId === variable.id ? (
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      value={tempVarKey}
+                      onChange={(e) => setTempVarKey(e.target.value)}
+                      className="w-full bg-figma-bg border border-figma-border rounded px-1.5 py-1 text-xs text-white focus:border-figma-accent outline-none"
+                      placeholder="Key"
+                      autoFocus
+                    />
+                    <textarea
+                      value={tempVarValue}
+                      onChange={(e) => setTempVarValue(e.target.value)}
+                      className="w-full bg-figma-bg border border-figma-border rounded px-1.5 py-1 text-xs text-figma-muted focus:text-white focus:border-figma-accent outline-none min-h-[60px] resize-y"
+                      placeholder="Value"
+                      rows={3}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.metaKey) handleSaveVariable();
+                      }}
+                    />
+                    <div className="flex justify-end gap-1 mt-1">
+                      <button onClick={() => setEditingVarId(null)} className="text-[10px] text-figma-muted hover:text-white px-1.5 py-0.5">Cancel</button>
+                      <button onClick={handleSaveVariable} className="text-[10px] bg-figma-accent text-white px-1.5 py-0.5 rounded">Save</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between">
+                    <div
+                      className="flex-1 cursor-pointer"
+                      onClick={() => {
+                        setEditingVarId(variable.id);
+                        setTempVarKey(variable.key);
+                        setTempVarValue(variable.value);
+                      }}
+                    >
+                      <div className="text-xs font-medium text-figma-accent truncate" title={variable.key}>{variable.key}</div>
+                      <div className="text-[11px] text-figma-muted truncate" title={variable.value}>{variable.value}</div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteVariable(variable.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-figma-muted hover:text-red-400 transition-opacity p-1"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5.5 1C5.22386 1 5 1.22386 5 1.5C5 1.77614 5.22386 2 5.5 2H9.5C9.77614 2 10 1.77614 10 1.5C10 1.22386 9.77614 1 9.5 1H5.5ZM3 3.5C3 3.22386 3.22386 3 3.5 3H5H10H11.5C11.7761 3 12 3.22386 12 3.5C12 3.77614 11.7761 4 11.5 4H11.296L10.868 12.132C10.7917 13.582 9.59228 14.75 8.14007 14.75H6.85993C5.40772 14.75 4.20827 13.582 4.13199 12.132L3.70402 4H3.5C3.22386 4 3 3.77614 3 3.5ZM4.71201 4L5.13201 12.079C5.17014 12.804 5.76987 13.3885 6.49587 13.3885H8.50413C9.23013 13.3885 9.82986 12.804 9.86799 12.079L10.288 4H4.71201Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {(!activePrompt?.projectVariables || activePrompt.projectVariables.length === 0) && (
+              <div className="text-xs text-figma-muted italic px-1">No variables</div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Footer / Add New */}
       <div className="p-3 border-t border-figma-border space-y-2">

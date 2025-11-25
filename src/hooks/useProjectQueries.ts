@@ -41,7 +41,8 @@ export function convertProjectToPromptData(project: Project): PromptData {
     name: project.name,
     description: '',
     activeVariantId: variants[0]?.id || '',
-    variants
+    variants,
+    projectVariables: project.variables || []
   };
 }
 
@@ -140,6 +141,19 @@ export function useProjectQueries() {
     },
   });
 
+  // Mutation to update project variables
+  const updateProjectVariablesMutation = useMutation({
+    mutationFn: async ({ projectName, variables }: { projectName: string; variables: any[] }) => {
+      await projectSystem.updateProjectVariables(projectName, variables);
+      return { projectName, variables };
+    },
+    onSuccess: ({ projectName }) => {
+      queryClient.invalidateQueries({ queryKey: ['project', projectName] });
+      // Also invalidate list as it might be used there (though unlikely for variables)
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+
   return {
     projectsQuery,
     useProject,
@@ -149,5 +163,7 @@ export function useProjectQueries() {
     isDeleting: deleteProjectMutation.isPending,
     updateProject: updateProjectMutation.mutateAsync,
     isUpdating: updateProjectMutation.isPending,
+    updateProjectVariables: updateProjectVariablesMutation.mutateAsync,
+    isUpdatingVariables: updateProjectVariablesMutation.isPending,
   };
 }
