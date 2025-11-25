@@ -19,7 +19,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
           {/* Buza Logo: Speech Bubble with 'B' */}
           <div className="relative group">
             <div className="w-6 h-6 bg-gradient-to-br from-[#1DB954] to-[#14803a] rounded-t-lg rounded-bl-lg rounded-br-none flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-105">
-                <span className="text-[11px] font-black text-black leading-none mt-[1px] ml-[1px]">B</span>
+              <span className="text-[11px] font-black text-black leading-none mt-[1px] ml-[1px]">B</span>
             </div>
             {/* Small tail for the speech bubble effect */}
             <div className="absolute -bottom-[3px] right-0 w-2 h-2 bg-[#14803a] clip-path-triangle transform rotate-180"></div>
@@ -30,10 +30,10 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
 
       {/* Tools / Sections */}
       <div className="p-2 border-b border-figma-border">
-         <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-figma-hover cursor-pointer text-xs font-medium text-figma-text">
-            <BoxIcon className="w-4 h-4 text-figma-muted" />
-            <span>All Prompts</span>
-         </div>
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-figma-hover cursor-pointer text-xs font-medium text-figma-text">
+          <BoxIcon className="w-4 h-4 text-figma-muted" />
+          <span>All Prompts</span>
+        </div>
       </div>
 
       {/* List */}
@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
         <div className="px-3 mb-2 text-[10px] font-bold text-figma-muted uppercase tracking-wider">
           Your Projects
         </div>
-        
+
         {prompts.length === 0 && (
           <div className="px-4 py-4 text-xs text-figma-muted text-center italic">
             No prompts yet. Create one!
@@ -52,9 +52,8 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
           <div
             key={prompt.id}
             onClick={() => onSelectPrompt(prompt.id)}
-            className={`group px-3 py-1.5 mx-2 rounded cursor-pointer flex items-center gap-2 text-xs mb-0.5 transition-colors
-              ${activePromptId === prompt.id ? 'bg-figma-accent text-black font-medium' : 'text-figma-muted hover:bg-figma-hover hover:text-white'}
-            `}
+            className={`group px-3 py-2 mx-2 rounded cursor-pointer flex items-center gap-2 text-xs mb-0.5 transition-colors
+  ${activePromptId === prompt.id ? 'bg-figma-accent text-black font-medium' : 'text-figma-muted hover:bg-figma-hover hover:text-white'}`}
           >
             <FileTextIcon className={`w-3.5 h-3.5 ${activePromptId === prompt.id ? 'text-black' : 'text-figma-muted group-hover:text-white'}`} />
             <span className="truncate">{prompt.name}</span>
@@ -79,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
           Explore Templates
         </button>
       </div>
-      
+
       {/* Styles for the logo tail */}
       <style>{`
         .clip-path-triangle {
