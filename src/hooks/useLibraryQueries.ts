@@ -6,24 +6,16 @@ import { projectSystem } from '../lib/project-system';
 export function useLibraryQueries() {
     const queryClient = useQueryClient();
 
-    // Query for templates (keeping localStorage for now as templates aren't in scope)
+    // Query for templates - NOW USING FILE SYSTEM
     const templatesQuery = useQuery({
         queryKey: ['templates'],
         queryFn: async () => {
-            // Load from localStorage initially
-            const savedTemplates = localStorage.getItem('promptStudio_templates');
-            if (savedTemplates) {
-                try {
-                    const parsedTemplates = JSON.parse(savedTemplates);
-                    if (Array.isArray(parsedTemplates) && parsedTemplates.length > 0) {
-                        return parsedTemplates;
-                    }
-                } catch (e) {
-                    console.error("Failed to load saved templates", e);
-                }
+            const templates = await projectSystem.getTemplateLibrary();
+            // If no templates exist, return default templates
+            if (templates.length === 0) {
+                return TEMPLATES;
             }
-            // Fallback to default templates
-            return TEMPLATES;
+            return templates;
         },
         staleTime: 5 * 60 * 1000,
     });
@@ -37,12 +29,12 @@ export function useLibraryQueries() {
         staleTime: 5 * 60 * 1000,
     });
 
-    // Mutation to add template
+    // Mutation to add template - NOW USING FILE SYSTEM
     const addTemplateMutation = useMutation({
         mutationFn: async (template: Template) => {
             const currentTemplates = templatesQuery.data || [];
             const newTemplates = [...currentTemplates, template];
-            localStorage.setItem('promptStudio_templates', JSON.stringify(newTemplates));
+            await projectSystem.updateTemplateLibrary(newTemplates);
             return template;
         },
         onSuccess: () => {

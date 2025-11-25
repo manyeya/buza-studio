@@ -30,6 +30,7 @@ export interface Project {
     path: string;
     variants: Variant[];
     variables: Array<{ id: string; key: string; value: string }>;
+    description?: string;
 }
 
 /**
@@ -214,25 +215,67 @@ export class ProjectSystem {
      */
     async updateProjectVariables(projectName: string, variables: Array<{ id: string; key: string; value: string }>): Promise<void> {
         const filePath = `${this.basePath}/${projectName}/project.json`;
-        const content = JSON.stringify({ variables }, null, 2);
+
+        // Read existing data to preserve description
+        let existingData: any = {};
+        try {
+            const content = await readTextFile(filePath, { baseDir: BaseDirectory.Document });
+            existingData = JSON.parse(content);
+        } catch (e) {
+            // File doesn't exist yet, that's ok
+        }
+
+        const content = JSON.stringify({ ...existingData, variables }, null, 2);
         await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
     }
 
     /**
-     * Get full project with all variants
+     * Get project description
      */
+    async getProjectDescription(projectName: string): Promise<string> {
+        const filePath = `${this.basePath}/${projectName}/project.json`;
+        try {
+            const content = await readTextFile(filePath, { baseDir: BaseDirectory.Document });
+            const data = JSON.parse(content);
+            return data.description || '';
+        } catch (e) {
+            return '';
+        }
+    }
+
+    /**
+     * Update project description
+     */
+    async updateProjectDescription(projectName: string, description: string): Promise<void> {
+        const filePath = `${this.basePath}/${projectName}/project.json`;
+
+        // Read existing data to preserve variables
+        let existingData: any = {};
+        try {
+            const content = await readTextFile(filePath, { baseDir: BaseDirectory.Document });
+            existingData = JSON.parse(content);
+        } catch (e) {
+            // File doesn't exist yet, that's ok
+        }
+
+        const content = JSON.stringify({ ...existingData, description }, null, 2);
+        await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
+    }
+
     async getProject(projectName: string): Promise<Project> {
         const variantNames = await this.listVariants(projectName);
         const variants = await Promise.all(
             variantNames.map(name => this.readVariant(projectName, name))
         );
         const variables = await this.getProjectVariables(projectName);
+        const description = await this.getProjectDescription(projectName);
 
         return {
             name: projectName,
             path: `${this.basePath}/${projectName}`,
             variants,
-            variables
+            variables,
+            description
         };
     }
 
@@ -279,6 +322,30 @@ export class ProjectSystem {
     async updateVariableLibrary(variables: Array<{ id: string; key: string; value: string }>): Promise<void> {
         const filePath = `${this.basePath}/library.json`;
         const content = JSON.stringify({ variables }, null, 2);
+        await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
+    }
+
+    /**
+     * Get template library
+     */
+    async getTemplateLibrary(): Promise<any[]> {
+        const filePath = `${this.basePath}/templates.json`;
+        try {
+            const content = await readTextFile(filePath, { baseDir: BaseDirectory.Document });
+            const data = JSON.parse(content);
+            return data.templates || [];
+        } catch (e) {
+            // If file doesn't exist or is invalid, return empty array
+            return [];
+        }
+    }
+
+    /**
+     * Update template library
+     */
+    async updateTemplateLibrary(templates: any[]): Promise<void> {
+        const filePath = `${this.basePath}/templates.json`;
+        const content = JSON.stringify({ templates }, null, 2);
         await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
     }
 }

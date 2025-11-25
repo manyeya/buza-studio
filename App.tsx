@@ -24,7 +24,7 @@ const INITIAL_PROMPT: PromptData = {
         model: 'gemini-2.5-flash',
         temperature: 0.7,
         topK: 40,
-        systemInstruction: 'You are a creative writer.'
+        systemInstruction: ''
       },
       variables: [
         { id: 'v1', key: 'topic', value: 'a space cat' },
@@ -64,7 +64,7 @@ function convertProjectToPromptData(project: Project): PromptData {
         temperature: variant.metadata.temperature || 0.7,
         topK: variant.metadata.topK || 40,
         maxOutputTokens: variant.metadata.maxTokens,
-        systemInstruction: variant.metadata.systemInstruction
+        systemInstruction: variant.metadata.systemInstruction || ''
       },
       variables,
       versions: [],
@@ -76,7 +76,7 @@ function convertProjectToPromptData(project: Project): PromptData {
   return {
     id: project.name,
     name: project.name,
-    description: '',
+    description: project.description || '',
     activeVariantId: variants[0]?.id || '',
     variants,
     projectVariables: project.variables || []
@@ -88,8 +88,8 @@ const App: React.FC = () => {
   const [activePromptId, setActivePromptId] = useState<string>('1');
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isVariableLibraryOpen, setIsVariableLibraryOpen] = useState(false);
-  const [templates, setTemplates] = useState<Template[]>(TEMPLATES);
-  const [variableLibrary, setVariableLibrary] = useState<Variable[]>(INITIAL_VARS);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [variableLibrary, setVariableLibrary] = useState<Variable[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize and Load Projects from File System
@@ -117,7 +117,7 @@ const App: React.FC = () => {
               model: 'gemini-2.5-flash',
               temperature: 0.7,
               topK: 40,
-              systemInstruction: 'You are a creative writer.',
+              systemInstruction: '',
               variables: [
                 { id: 'v1', key: 'topic', value: 'a space cat' },
                 { id: 'v2', key: 'tone', value: 'humorous' }
@@ -134,6 +134,10 @@ const App: React.FC = () => {
         // Load variable library from file system
         const vars = await projectSystem.getVariableLibrary();
         setVariableLibrary(vars);
+
+        // Load template library from file system
+        const tmpl = await projectSystem.getTemplateLibrary();
+        setTemplates(tmpl.length > 0 ? tmpl : TEMPLATES);
       } catch (error) {
         console.error('Failed to initialize file system:', error);
       } finally {
@@ -148,13 +152,7 @@ const App: React.FC = () => {
   const activePrompt = prompts.find(p => p.id === activePromptId) || null;
   const activeVariant = activePrompt?.variants.find(v => v.id === activePrompt.activeVariantId) || null;
 
-  // Sync templates to localStorage (templates still use localStorage)
-  useEffect(() => {
-    localStorage.setItem('promptStudio_templates', JSON.stringify(templates));
-  }, [templates]);
-
-  // Variable library is now synced to file system automatically via mutations
-  // No need for useEffect
+  // No need for localStorage sync - everything uses file system now
 
   // Event handlers
   const handleSelectPrompt = (id: string) => {
@@ -209,7 +207,7 @@ const App: React.FC = () => {
     setIsTemplateModalOpen(false);
   };
 
-  const handleSaveAsTemplate = () => {
+  const handleSaveAsTemplate = async () => {
     if (!activePrompt || !activeVariant) return;
     const newTemplate: Template = {
       name: activePrompt.name,
@@ -218,7 +216,9 @@ const App: React.FC = () => {
       config: activeVariant.config,
       variables: activeVariant.variables.map(v => ({ key: v.key, value: v.value }))
     };
-    setTemplates([newTemplate, ...templates]);
+    const updated = [newTemplate, ...templates];
+    await projectSystem.updateTemplateLibrary(updated);
+    setTemplates(updated);
   };
 
   const handleAddToLibrary = async (variable: Variable) => {
@@ -288,7 +288,11 @@ const App: React.FC = () => {
       ));
       setActivePromptId(updatedPrompt.id);
     } else {
-      // Update description
+      // Update description or other fields
+      if (updates.description !== undefined) {
+        await projectSystem.updateProjectDescription(activePrompt.name, updates.description);
+      }
+
       setPrompts(prev => prev.map(p =>
         p.id === activePromptId ? { ...p, ...updates } : p
       ));
