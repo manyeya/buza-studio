@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from './components/Sidebar';
-import PropertiesPanel from './components/PropertiesPanel';
-import Workspace from './components/Workspace';
-import TemplateLibraryModal from './components/TemplateLibraryModal';
-import VariableLibraryModal from './components/VariableLibraryModal';
+import Sidebar from './src/components/Sidebar';
+import PropertiesPanel from './src/components/PropertiesPanel';
+import Workspace from './src/components/Workspace';
+import TemplateLibraryModal from './src/components/TemplateLibraryModal';
+import VariableLibraryModal from './src/components/VariableLibraryModal';
 import { projectSystem } from './src/lib/project-system';
 import * as GeminiService from './services/geminiService';
 import type { Project } from './src/lib/project-system';
