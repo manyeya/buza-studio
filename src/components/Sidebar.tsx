@@ -3,6 +3,10 @@ import { PromptData } from '../../types';
 import { FileTextIcon, PlusIcon, BoxIcon, GridIcon, ChevronDownIcon, SearchIcon, SortAscIcon, SortDescIcon, HistoryIcon, TrashIcon } from './Icons';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
+import { Item, ItemActions, ItemContent, ItemDescription, ItemFooter, ItemMedia, ItemTitle } from './ui/item';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { DotsVerticalIcon } from '@radix-ui/react-icons';
+import { PencilIcon } from 'lucide-react';
 
 interface SidebarProps {
   prompts: PromptData[];
@@ -23,8 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
   const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingProjectName, setEditingProjectName] = useState('');
-  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const [editingVarId, setEditingVarId] = useState<string | null>(null);
   const [tempVarKey, setTempVarKey] = useState('');
   const [tempVarValue, setTempVarValue] = useState('');
@@ -193,7 +196,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                   }`}
               >
                 {editingProjectId === prompt.id ? (
-                  <div className="px-3 py-2 space-y-2">
+                  <Item className="px-3 py-2 space-y-2">
                     <input
                       type="text"
                       value={editingProjectName}
@@ -205,28 +208,32 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                       className="w-full bg-figma-bg border border-figma-border rounded px-2 py-1 text-xs text-white focus:border-figma-accent outline-none"
                       autoFocus
                     />
-                    <div className="flex justify-end gap-1">
-                      <button
+                    <ItemFooter className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
                         onClick={handleCancelEditProject}
                         className="text-[10px] text-figma-muted hover:text-white px-2 py-0.5"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="default"
                         onClick={handleSaveProjectName}
-                        className="text-[10px] bg-figma-accent text-white px-2 py-0.5 rounded"
+                        className="text-[10px] text-white px-2 py-0.5 rounded"
                       >
                         Save
-                      </button>
-                    </div>
-                  </div>
+                      </Button>
+                    </ItemFooter>
+                  </Item>
                 ) : (
-                  <div className="flex items-center">
-                    <button
+   
+                    <Item
                       onClick={() => onSelectPrompt(prompt.id)}
-                      className="flex-1 flex items-center gap-2 px-3 py-2 text-left text-xs transition-colors"
+                      className="flex-1 flex items-center px-3 py-1 text-left text-xs transition-colors hover:cursor-pointer hover:bg-figma-hover"
                     >
-                      <FileTextIcon className={`w-3.5 h-3.5 flex-shrink-0 ${activePromptId === prompt.id ? 'text-figma-accent' : 'text-figma-muted'}`} />
+                      <ItemMedia>
+                        <FileTextIcon className={`w-3.5 h-3.5 flex-shrink-0 ${activePromptId === prompt.id ? 'text-figma-accent' : 'text-figma-muted'}`} />
+                      </ItemMedia>
                       <div className="flex-1 min-w-0">
                         <div className={`truncate font-medium ${activePromptId === prompt.id ? 'text-figma-accent' : 'text-white'}`}>
                           {prompt.name}
@@ -237,53 +244,39 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                           </div>
                         )}
                       </div>
-                    </button>
-                    <div className="relative">
-                      <button
-                        onClick={() => setActiveDropdownId(activeDropdownId === prompt.id ? null : prompt.id)}
-                        className="p-1.5 hover:bg-figma-hover text-figma-muted hover:text-white transition-colors rounded opacity-0 group-hover:opacity-100"
-                        title="More options"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-                          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                          <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-                        </svg>
-                      </button>
-
-                      {activeDropdownId === prompt.id && (
-                        <div
-                          ref={dropdownRef}
-                          className="absolute right-0 top-full mt-1 bg-figma-panel border border-figma-border rounded shadow-lg z-50 py-1 min-w-[120px]"
-                        >
-                          <Button
-                            onClick={() => {
-                              handleStartEditProject(prompt);
-                              setActiveDropdownId(null);
-                            }}
-                            variant="ghost"
-                            className="w-full text-left px-3 py-1.5 text-xs text-white hover:bg-figma-hover transition-colors flex items-center gap-2"
+                      <ItemActions>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="More options"
+                            >
+                              <DotsVerticalIcon className="w-3 h-3 text-figma-muted hover:text-white" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            className="min-w-[120px] bg-figma-panel border border-figma-border rounded shadow-lg"
+                            align="end"
                           >
-                            <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12.146 5.596l.708-.708a.5.5 0 00-.708-.708l-.708.708a.5.5 0 00.708.708zM3.854 8.854l5.646-5.646-.708-.708L3.146 8.146l.708.708zm6.292-6.292l1.415 1.414.708-.708-1.415-1.414-.708.708zm-7.071 7.071L1.5 12.207V14h1.793l2.565-2.565-.708-.708z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
-                            </svg>
-                            Rename
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => {
-                              onDeleteProject(prompt.name);
-                              setActiveDropdownId(null);
-                            }}
-                            className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-figma-hover transition-colors flex items-center gap-2"
-                          >
-                            <TrashIcon className="w-3 h-3" />
-                            Delete
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                            <DropdownMenuItem
+                              onClick={() => handleStartEditProject(prompt)}
+                              className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover focus:text-white cursor-pointer"
+                            >
+                              <PencilIcon className="size-1" />
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => onDeleteProject(prompt.name)}
+                              className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-figma-hover focus:bg-figma-hover focus:text-red-400 cursor-pointer"
+                            >
+                              <TrashIcon className="w-3 h-3" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </ItemActions>
+                    </Item>
                 )}
               </div>
             ))}
@@ -312,30 +305,36 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
               {activePrompt.projectVariables?.map((variable) => (
                 <div key={variable.id} className="group transition-colors hover:bg-figma-bg/50">
                   {editingVarId === variable.id ? (
-                    <div className="px-3 py-2 space-y-1.5">
-                      <input
-                        type="text"
-                        value={tempVarKey}
-                        onChange={(e) => setTempVarKey(e.target.value)}
-                        className="w-full bg-figma-bg border border-figma-border rounded px-1.5 py-1 text-xs text-white focus:border-figma-accent outline-none"
-                        placeholder="Key"
-                        autoFocus
-                      />
-                      <textarea
-                        value={tempVarValue}
-                        onChange={(e) => setTempVarValue(e.target.value)}
-                        className="w-full bg-figma-bg border border-figma-border rounded px-1.5 py-1 text-xs text-figma-muted focus:text-white focus:border-figma-accent outline-none min-h-[60px] resize-y"
-                        placeholder="Value"
-                        rows={3}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && e.metaKey) handleSaveVariable();
-                        }}
-                      />
-                      <div className="flex justify-end gap-1 mt-1">
+                    <Item className='hover:bg-figma-bg/50'>
+                      <ItemContent>
+
+                        <input
+                          type="text"
+                          value={tempVarKey}
+                          onChange={(e) => setTempVarKey(e.target.value)}
+                          className="w-full bg-figma-bg border border-figma-border rounded px-1.5 py-1 text-xs text-white focus:border-figma-accent outline-none"
+                          placeholder="Key"
+                          autoFocus
+                        />
+
+
+                        <textarea
+                          value={tempVarValue}
+                          onChange={(e) => setTempVarValue(e.target.value)}
+                          className="w-full bg-figma-bg border border-figma-border rounded px-1.5 py-1 text-xs text-figma-muted focus:text-white focus:border-figma-accent outline-none min-h-[60px] resize-y"
+                          placeholder="Value"
+                          rows={3}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && e.metaKey) handleSaveVariable();
+                          }}
+                        />
+
+                      </ItemContent>
+                      <ItemFooter className="flex justify-end gap-1">
                         <button onClick={() => setEditingVarId(null)} className="text-[10px] text-figma-muted hover:text-white px-1.5 py-0.5">Cancel</button>
                         <button onClick={handleSaveVariable} className="text-[10px] bg-figma-accent text-white px-1.5 py-0.5 rounded">Save</button>
-                      </div>
-                    </div>
+                      </ItemFooter>
+                    </Item>
                   ) : (
                     <div className="flex items-center px-3 py-2">
                       <div
