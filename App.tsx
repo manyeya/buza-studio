@@ -144,8 +144,8 @@ const App: React.FC = () => {
     const exists = activeVariant.variables.some(v => v.key === variable.key);
     const updatedVars = exists
       ? activeVariant.variables.map(v =>
-          v.key === variable.key ? { ...v, value: variable.value } : v
-        )
+        v.key === variable.key ? { ...v, value: variable.value } : v
+      )
       : [...activeVariant.variables, { id: crypto.randomUUID(), key: variable.key, value: variable.value }];
 
     updateVariant.mutate({
@@ -254,10 +254,10 @@ const App: React.FC = () => {
 
   const handleDeleteProject = (projectName: string) => {
     const isActiveProject = activePrompt?.name === projectName;
-    const confirmMessage = isActiveProject 
+    const confirmMessage = isActiveProject
       ? `Are you sure you want to delete "${projectName}"? This is your currently active project and cannot be undone.`
       : `Are you sure you want to delete "${projectName}"? This action cannot be undone.`;
-    
+
     if (confirm(confirmMessage)) {
       deleteProject.mutate(projectName);
     }
@@ -265,17 +265,17 @@ const App: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen bg-figma-bg text-white items-center justify-center">
+      <div className="flex h-screen w-screen bg-background text-foreground items-center justify-center">
         <div className="text-center">
           <div className="text-xl mb-2">Loading projects...</div>
-          <div className="text-figma-muted text-sm">Initializing file system</div>
+          <div className="text-muted-foreground text-sm">Initializing file system</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-screen bg-figma-bg text-white overflow-hidden font-sans antialiased selection:bg-figma-accent selection:text-white">
+    <div className="fixed inset-0 flex h-screen w-screen bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary selection:text-primary-foreground" style={{ height: '100vh' }}>
       <Sidebar
         prompts={prompts}
         activePromptId={activePromptId}
@@ -314,7 +314,7 @@ const App: React.FC = () => {
           />
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-figma-muted">Select or create a prompt</div>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">Select or create a prompt</div>
       )}
 
       {isTemplateModalOpen && (
