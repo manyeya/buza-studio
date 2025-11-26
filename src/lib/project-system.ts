@@ -31,6 +31,8 @@ export interface Project {
     variants: Variant[];
     variables: Array<{ id: string; key: string; value: string }>;
     description?: string;
+    createdAt: number;
+    updatedAt: number;
 }
 
 const DEFAULT_TEMPLATES = [
@@ -195,8 +197,11 @@ export class ProjectSystem {
         const projectPath = `${this.basePath}/${projectName}`;
         await mkdir(projectPath, { baseDir: BaseDirectory.Document, recursive: true });
 
-        // Create project.json with empty variables
+        const now = Date.now();
+
+        // Create project.json with empty variables and timestamps
         await this.updateProjectVariables(projectName, []);
+        await this.updateProjectTimestamps(projectName, now, now);
 
         // Create a default Main.md variant
         await this.createVariant(projectName, 'Main', '', {});
@@ -299,7 +304,7 @@ export class ProjectSystem {
             // File doesn't exist yet, that's ok
         }
 
-        const content = JSON.stringify({ ...existingData, variables }, null, 2);
+        const content = JSON.stringify({ ...existingData, variables, updatedAt: Date.now() }, null, 2);
         await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
     }
 
@@ -318,6 +323,49 @@ export class ProjectSystem {
     }
 
     /**
+     * Update project timestamps
+     */
+    async updateProjectTimestamps(projectName: string, createdAt?: number, updatedAt?: number): Promise<void> {
+        const filePath = `${this.basePath}/${projectName}/project.json`;
+
+        // Read existing data to preserve other fields
+        let existingData: any = {};
+        try {
+            const content = await readTextFile(filePath, { baseDir: BaseDirectory.Document });
+            existingData = JSON.parse(content);
+        } catch (e) {
+            // File doesn't exist yet, that's ok
+        }
+
+        const updates: any = {};
+        if (createdAt !== undefined) updates.createdAt = createdAt;
+        if (updatedAt !== undefined) updates.updatedAt = updatedAt;
+
+        const content = JSON.stringify({ ...existingData, ...updates }, null, 2);
+        await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
+    }
+
+    /**
+     * Get project timestamps
+     */
+    async getProjectTimestamps(projectName: string): Promise<{ createdAt: number; updatedAt: number }> {
+        const filePath = `${this.basePath}/${projectName}/project.json`;
+        try {
+            const content = await readTextFile(filePath, { baseDir: BaseDirectory.Document });
+            const data = JSON.parse(content);
+            const now = Date.now();
+            return {
+                createdAt: data.createdAt || now,
+                updatedAt: data.updatedAt || now
+            };
+        } catch (e) {
+            // If file doesn't exist, return current time as fallback
+            const now = Date.now();
+            return { createdAt: now, updatedAt: now };
+        }
+    }
+
+    /**
      * Update project description
      */
     async updateProjectDescription(projectName: string, description: string): Promise<void> {
@@ -332,7 +380,7 @@ export class ProjectSystem {
             // File doesn't exist yet, that's ok
         }
 
-        const content = JSON.stringify({ ...existingData, description }, null, 2);
+        const content = JSON.stringify({ ...existingData, description, updatedAt: Date.now() }, null, 2);
         await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
     }
 
@@ -343,13 +391,16 @@ export class ProjectSystem {
         );
         const variables = await this.getProjectVariables(projectName);
         const description = await this.getProjectDescription(projectName);
+        const timestamps = await this.getProjectTimestamps(projectName);
 
         return {
             name: projectName,
             path: `${this.basePath}/${projectName}`,
             variants,
             variables,
-            description
+            description,
+            createdAt: timestamps.createdAt,
+            updatedAt: timestamps.updatedAt
         };
     }
 

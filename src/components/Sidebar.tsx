@@ -1,6 +1,6 @@
 import React from 'react';
-import { PromptData } from '../types';
-import { FileTextIcon, PlusIcon, BoxIcon, GridIcon, ChevronDownIcon } from './Icons';
+import { PromptData } from '../../types';
+import { FileTextIcon, PlusIcon, BoxIcon, GridIcon, ChevronDownIcon, SearchIcon, SortAscIcon, SortDescIcon, HistoryIcon, TrashIcon } from './Icons';
 import { useState, useRef, useEffect } from 'react';
 
 interface SidebarProps {
@@ -11,19 +11,45 @@ interface SidebarProps {
   onOpenTemplates: () => void;
   onUpdateProjectVariables: (variables: any[]) => void;
   onInsertVariable?: (variableKey: string) => void;
+  onDeleteProject: (projectName: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectPrompt, onNewPrompt, onOpenTemplates, onUpdateProjectVariables, onInsertVariable }) => {
+const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectPrompt, onNewPrompt, onOpenTemplates, onUpdateProjectVariables, onInsertVariable, onDeleteProject }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [copiedVarId, setCopiedVarId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
 
   const activePrompt = prompts.find(p => p.id === activePromptId);
+
+  // Filter and sort projects
+  const filteredAndSortedPrompts = React.useMemo(() => {
+    let filtered = prompts.filter(prompt => 
+      prompt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prompt.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name);
+      } else if (sortBy === 'date') {
+        // Use real timestamps - sort by updatedAt for recent activity
+        comparison = (a.updatedAt || a.createdAt || 0) - (b.updatedAt || b.createdAt || 0);
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [prompts, searchQuery, sortBy, sortOrder]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+        setSearchQuery('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -90,27 +116,74 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-figma-panel border border-figma-border rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">
-              <div className="px-3 py-2 text-[10px] font-bold text-figma-muted uppercase tracking-wider border-b border-figma-border sticky top-0 bg-figma-panel">
-                Your Projects
+            <div className="absolute top-full left-0 right-0 mt-1 bg-figma-panel border border-figma-border rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto">
+              {/* Search Bar */}
+              <div className="px-3 py-2 border-b border-figma-border sticky top-0 bg-figma-panel z-10">
+                <div className="relative">
+                  <SearchIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-figma-muted" />
+                  <input
+                    type="text"
+                    placeholder="Search projects..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-6 pr-2 py-1.5 bg-figma-bg border border-figma-border rounded text-xs text-white placeholder-figma-muted focus:border-figma-accent outline-none"
+                    autoFocus
+                  />
+                </div>
+                
+                {/* Sort Controls */}
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={() => setSortBy(sortBy === 'name' ? 'date' : 'name')}
+                    className="flex items-center gap-1 text-[10px] text-figma-muted hover:text-white transition-colors"
+                    title={`Sort by ${sortBy === 'name' ? 'date' : 'name'}`}
+                  >
+                    {sortBy === 'name' ? <SortAscIcon className="w-3 h-3" /> : <HistoryIcon className="w-3 h-3" />}
+                    {sortBy === 'name' ? 'Name' : 'Date'}
+                  </button>
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="flex items-center gap-1 text-[10px] text-figma-muted hover:text-white transition-colors"
+                    title={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
+                  >
+                    {sortOrder === 'asc' ? <SortAscIcon className="w-3 h-3" /> : <SortDescIcon className="w-3 h-3" />}
+                    {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+                  </button>
+                </div>
               </div>
-              {prompts.length === 0 && (
+              
+              <div className="px-3 py-2 text-[10px] font-bold text-figma-muted uppercase tracking-wider border-b border-figma-border sticky top-0 bg-figma-panel">
+                Your Projects ({filteredAndSortedPrompts.length})
+              </div>
+              {filteredAndSortedPrompts.length === 0 && (
                 <div className="px-4 py-3 text-xs text-figma-muted text-center italic">
-                  No projects yet.
+                  {searchQuery ? 'No projects found matching your search.' : 'No projects yet.'}
                 </div>
               )}
-              {prompts.map((prompt) => (
-                <button
-                  key={prompt.id}
-                  onClick={() => {
-                    onSelectPrompt(prompt.id);
-                    setIsDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs hover:bg-figma-hover transition-colors flex items-center gap-2 ${activePromptId === prompt.id ? 'text-figma-accent bg-figma-hover/50' : 'text-white'}`}
-                >
-                  <FileTextIcon className={`w-3.5 h-3.5 ${activePromptId === prompt.id ? 'text-figma-accent' : 'text-figma-muted'}`} />
-                  <span className="truncate">{prompt.name}</span>
-                </button>
+              {filteredAndSortedPrompts.map((prompt) => (
+                <div key={prompt.id} className="flex items-center group">
+                  <button
+                    onClick={() => {
+                      onSelectPrompt(prompt.id);
+                      setIsDropdownOpen(false);
+                      setSearchQuery('');
+                    }}
+                    className={`flex-1 text-left px-3 py-2 text-xs hover:bg-figma-hover transition-colors flex items-center gap-2 ${activePromptId === prompt.id ? 'text-figma-accent bg-figma-hover/50' : 'text-white'}`}
+                  >
+                    <FileTextIcon className={`w-3.5 h-3.5 ${activePromptId === prompt.id ? 'text-figma-accent' : 'text-figma-muted'}`} />
+                    <span className="truncate">{prompt.name}</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteProject(prompt.name);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-figma-hover text-figma-muted hover:text-red-400 transition-all mr-1"
+                    title={`Delete ${prompt.name}`}
+                  >
+                    <TrashIcon className="w-3 h-3" />
+                  </button>
+                </div>
               ))}
             </div>
           )}

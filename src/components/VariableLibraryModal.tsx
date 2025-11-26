@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Variable } from '../types';
+import { Variable } from '../../types';
 import { XIcon, PlusIcon, DownloadIcon, TrashIcon } from './Icons';
 
 interface VariableLibraryModalProps {

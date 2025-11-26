@@ -18,6 +18,7 @@ import {
   useUpdateVariant,
   useAddVariant,
   useDeleteVariant,
+  useDeleteProject,
   useSaveVersion,
   useRestoreVersion,
   useVariableLibrary,
@@ -50,6 +51,7 @@ const App: React.FC = () => {
   const updateVariant = useUpdateVariant();
   const addVariant = useAddVariant();
   const deleteVariant = useDeleteVariant();
+  const deleteProject = useDeleteProject();
   const saveVersion = useSaveVersion();
   const restoreVersion = useRestoreVersion();
   const addToVariableLibrary = useAddToVariableLibrary();
@@ -250,6 +252,17 @@ const App: React.FC = () => {
     generateStructure.mutate({ description, variant: activeVariant });
   };
 
+  const handleDeleteProject = (projectName: string) => {
+    const isActiveProject = activePrompt?.name === projectName;
+    const confirmMessage = isActiveProject 
+      ? `Are you sure you want to delete "${projectName}"? This is your currently active project and cannot be undone.`
+      : `Are you sure you want to delete "${projectName}"? This action cannot be undone.`;
+    
+    if (confirm(confirmMessage)) {
+      deleteProject.mutate(projectName);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-screen bg-figma-bg text-white items-center justify-center">
@@ -271,6 +284,7 @@ const App: React.FC = () => {
         onOpenTemplates={openTemplateModal}
         onUpdateProjectVariables={handleUpdateProjectVariables}
         onInsertVariable={handleInsertVariable}
+        onDeleteProject={handleDeleteProject}
       />
 
       {activePrompt && activeVariant ? (

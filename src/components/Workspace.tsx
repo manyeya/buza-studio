@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PromptData, PromptVariant } from '../types';
+import { PromptData, PromptVariant } from '../../types';
 import { PlayIcon, MagicIcon, CopyIcon, SparklesIcon, KeyboardIcon } from './Icons';
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs';
