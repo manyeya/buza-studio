@@ -4,6 +4,7 @@ import { projectSystem } from '../lib/project-system';
 import { convertProjectToPromptData, INITIAL_PROMPT } from '../lib/convert';
 import { activePromptIdAtom } from '../atoms';
 import type { PromptData, Variable } from '../../types';
+import { toast } from 'sonner';
 
 export const PROJECTS_QUERY_KEY = ['projects'];
 
@@ -75,6 +76,9 @@ export function useCreateProject() {
         old ? [...old, newPrompt] : [newPrompt]
       );
       setActivePromptId(newPrompt.id);
+    },
+    onError: () => {
+      toast.error('Failed to create project');
     }
   });
 }
@@ -138,12 +142,17 @@ export function useUpdateProject() {
           old?.map(p => p.id === activePromptId ? result : p) ?? []
         );
         setActivePromptId(result.id);
+        toast.success(`Project "${result.name}" renamed to "${result.name}"`);
       } else {
         // Partial update
         queryClient.setQueryData<PromptData[]>(PROJECTS_QUERY_KEY, (old) =>
           old?.map(p => p.id === activePromptId ? { ...p, ...result.updates } : p) ?? []
         );
+        toast.success(`Project "${result.updates.name}" updated`);
       }
+    },
+    onError: () => {
+      toast.error('Failed to update project');
     }
   });
 }
@@ -167,6 +176,10 @@ export function useUpdateProjectVariables() {
       queryClient.setQueryData<PromptData[]>(PROJECTS_QUERY_KEY, (old) =>
         old?.map(p => p.id === activePromptId ? { ...p, projectVariables: variables } : p) ?? []
       );
+      toast.success(`Project variables updated`);
+    },
+    onError: () => {
+      toast.error('Failed to update project variables');
     }
   });
 }
@@ -188,6 +201,10 @@ export function useDeleteProject() {
         }
         return filtered;
       });
+      toast.success(`Project "${deletedName}" deleted`);
+    },
+    onError: () => {
+      toast.error('Failed to delete project');
     }
   });
 }

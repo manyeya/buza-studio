@@ -4,6 +4,7 @@ import * as GeminiService from '../../services/geminiService';
 import { activePromptIdAtom } from '../atoms';
 import { PROJECTS_QUERY_KEY } from './useProjects';
 import type { PromptData, PromptVariant } from '../../types';
+import { toast } from 'sonner';
 
 export function useRunPrompt() {
   const queryClient = useQueryClient();
@@ -48,6 +49,9 @@ export function useRunPrompt() {
             : p
         ) ?? []
       );
+    },
+    onError: () => {
+      toast.error('Failed to run prompt');
     }
   });
 }
@@ -82,6 +86,9 @@ export function useOptimizePrompt() {
           ) ?? []
         );
       }
+    },
+    onError: () => {
+      toast.error('Failed to optimize prompt');
     }
   });
 }
@@ -131,6 +138,9 @@ export function useGeneratePromptStructure() {
           ) ?? []
         );
       }
+    },
+    onError: () => {
+      toast.error('Failed to generate prompt structure');
     }
   });
 }

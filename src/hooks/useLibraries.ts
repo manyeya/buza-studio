@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectSystem } from '../lib/project-system';
 import type { Variable, Template } from '../../types';
+import { toast } from 'sonner';
 
 export const VARIABLE_LIBRARY_KEY = ['variableLibrary'];
 export const TEMPLATE_LIBRARY_KEY = ['templateLibrary'];
@@ -40,7 +41,11 @@ export function useAddToVariableLibrary() {
       }
     },
     onSuccess: (updated) => {
+      toast.success(`Variable "{{${updated[0].key}}}" added to library`);
       queryClient.setQueryData(VARIABLE_LIBRARY_KEY, updated);
+    },
+    onError: () => {
+      toast.error('Failed to add variable to library');
     }
   });
 }
@@ -56,7 +61,11 @@ export function useRemoveFromVariableLibrary() {
       return updated;
     },
     onSuccess: (updated) => {
+      toast.success(`Variable "{{${updated[0].key}}}" removed from library`);
       queryClient.setQueryData(VARIABLE_LIBRARY_KEY, updated);
+    },
+    onError: () => {
+      toast.error('Failed to remove variable from library');
     }
   });
 }
@@ -81,7 +90,11 @@ export function useSaveAsTemplate() {
       return updated;
     },
     onSuccess: (updated) => {
+      toast.success(`Template "${updated[0].name}" saved to library`);
       queryClient.setQueryData(TEMPLATE_LIBRARY_KEY, updated);
+    },
+    onError: () => {
+      toast.error('Failed to save template to library');
     }
   });
 }

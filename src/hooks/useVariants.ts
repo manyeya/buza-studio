@@ -5,6 +5,7 @@ import { convertProjectToPromptData } from '../lib/convert';
 import { activePromptIdAtom } from '../atoms';
 import { PROJECTS_QUERY_KEY } from './useProjects';
 import type { PromptData, PromptVariant, PromptVersion } from '../../types';
+import { toast } from 'sonner';
 
 export function useUpdateVariant() {
   const queryClient = useQueryClient();
@@ -69,18 +70,22 @@ export function useUpdateVariant() {
         old?.map(p =>
           p.id === activePromptId
             ? {
-                ...p,
-                variants: p.variants.map(v =>
-                  v.id === variantId
-                    ? { ...v, ...updates, name: newName || v.name }
-                    : v
-                )
-              }
+              ...p,
+              variants: p.variants.map(v =>
+                v.id === variantId
+                  ? { ...v, ...updates, name: newName || v.name }
+                  : v
+              )
+            }
             : p
         ) ?? []
       );
+    },
+    onError: () => {
+      toast.error('Failed to update variant');
     }
   });
+
 }
 
 export function useAddVariant() {
@@ -116,6 +121,10 @@ export function useAddVariant() {
       queryClient.setQueryData<PromptData[]>(PROJECTS_QUERY_KEY, (old) =>
         old?.map(p => p.id === activePromptId ? updatedPrompt : p) ?? []
       );
+      toast.success(`Variant "${updatedPrompt.variants[updatedPrompt.variants.length - 1].name}" added`);
+    },
+    onError: () => {
+      toast.error('Failed to add variant');
     }
   });
 }
@@ -140,6 +149,10 @@ export function useDeleteVariant() {
       queryClient.setQueryData<PromptData[]>(PROJECTS_QUERY_KEY, (old) =>
         old?.map(p => p.id === activePromptId ? updatedPrompt : p) ?? []
       );
+      toast.success(`Variant "${updatedPrompt.variants[updatedPrompt.variants.length - 1].name}" deleted`);
+    },
+    onError: () => {
+      toast.error('Failed to delete variant');
     }
   });
 }
@@ -173,8 +186,14 @@ export function useSaveVersion() {
         updates: {
           versions: [newVersion, ...variant.versions]
         }
+      }, {
+        onSuccess: () => {
+          toast.success(`Version "${newVersion.name}" saved`);
+        },
+        onError: () => {
+          toast.error('Failed to save version');
+        }
       });
-
       return newVersion;
     }
   });
@@ -201,6 +220,13 @@ export function useRestoreVersion() {
           content: version.content,
           config: JSON.parse(JSON.stringify(version.config)),
           variables: JSON.parse(JSON.stringify(version.variables))
+        }
+      }, {
+        onSuccess: () => {
+          toast.success(`Version "${version.name}" restored`);
+        },
+        onError: () => {
+          toast.error('Failed to restore version');
         }
       });
     }
