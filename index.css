@@ -1,8 +1,44 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* CSS Variables */
+/* Custom theme values */
+@theme {
+  --color-spotify-green: #1DB954;
+  --color-spotify-green-light: #1ed760;
+  --color-spotify-green-dark: #169c46;
+  --color-bg-primary: #2c2c2c;
+  --color-bg-secondary: #333333;
+  --color-bg-tertiary: #404040;
+  --color-border-color: #444444;
+  --color-text-muted: #8e8e93;
+  --transition-fast: 150ms;
+}
+
+/* Custom utilities */
+@utility bg-figma-bg {
+  background-color: var(--bg-primary);
+}
+
+@utility bg-figma-panel {
+  background-color: var(--bg-secondary);
+}
+
+@utility bg-figma-hover {
+  background-color: var(--bg-tertiary);
+}
+
+@utility border-figma-border {
+  border-color: var(--border-color);
+}
+
+@utility text-figma-muted {
+  color: var(--text-muted);
+}
+
+@utility text-figma-accent {
+  color: var(--spotify-green);
+}
+
+/* CSS Variables for compatibility with existing components */
 :root {
   --spotify-green: #1DB954;
   --spotify-green-light: #1ed760;
@@ -108,32 +144,7 @@ body {
   }
 }
 
-/* Figma-style custom colors */
-@layer utilities {
-  .bg-figma-bg {
-    background-color: var(--bg-primary);
-  }
 
-  .bg-figma-panel {
-    background-color: var(--bg-secondary);
-  }
-
-  .bg-figma-hover {
-    background-color: var(--bg-tertiary);
-  }
-
-  .border-figma-border {
-    border-color: var(--border-color);
-  }
-
-  .text-figma-muted {
-    color: var(--text-muted);
-  }
-
-  .text-figma-accent {
-    color: var(--spotify-green);
-  }
-}
 
 
 /* Custom scrollbar */
