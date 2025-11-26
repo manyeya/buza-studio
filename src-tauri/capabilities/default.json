@@ -9,6 +9,24 @@
         "core:default",
         "shell:allow-open",
         {
+            "identifier": "shell:allow-spawn",
+            "allow": [
+                {
+                    "name": "binaries/api",
+                    "sidecar": true
+                }
+            ]
+        },
+        {
+            "identifier": "shell:allow-execute",
+            "allow": [
+                {
+                    "name": "binaries/api",
+                    "sidecar": true
+                }
+            ]
+        },
+        {
             "identifier": "fs:allow-read-text-file",
             "allow": [
                 {
