@@ -2,9 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables */
+:root {
+  --spotify-green: #1DB954;
+  --spotify-green-light: #1ed760;
+  --spotify-green-dark: #169c46;
+  --bg-primary: #2c2c2c;
+  --bg-secondary: #333333;
+  --bg-tertiary: #404040;
+  --border-color: #444444;
+  --text-muted: #8e8e93;
+  --transition-fast: 150ms;
+}
+
 /* FORCE HEIGHT TO FILL */
 * {
   box-sizing: border-box;
+  transition: background-color var(--transition-fast) ease,
+    border-color var(--transition-fast) ease,
+    color var(--transition-fast) ease;
 }
 
 html,
@@ -31,19 +47,19 @@ body {
 /* Override shadcn colors */
 @layer components {
   .bg-background {
-    background-color: #2c2c2c !important;
+    background-color: var(--bg-primary) !important;
   }
 
   .bg-card {
-    background-color: #333333 !important;
+    background-color: var(--bg-secondary) !important;
   }
 
   .bg-muted {
-    background-color: #404040 !important;
+    background-color: var(--bg-tertiary) !important;
   }
 
   .bg-accent {
-    background-color: #404040 !important;
+    background-color: var(--bg-tertiary) !important;
   }
 
   .text-foreground {
@@ -55,11 +71,11 @@ body {
   }
 
   .text-muted-foreground {
-    color: #8e8e93 !important;
+    color: var(--text-muted) !important;
   }
 
   .text-primary {
-    color: #1db954 !important;
+    color: var(--spotify-green) !important;
   }
 
   .text-primary-foreground {
@@ -71,66 +87,91 @@ body {
   }
 
   .border-input {
-    border-color: #444444 !important;
+    border-color: var(--border-color) !important;
   }
 
   .ring-offset-background {
-    --tw-ring-offset-color: #2c2c2c !important;
+    --tw-ring-offset-color: var(--bg-primary) !important;
   }
 
   .focus\:ring-ring {
-    --tw-ring-color: #1db954 !important;
+    --tw-ring-color: var(--spotify-green) !important;
+  }
+
+  /* Primary button styles */
+  .bg-primary {
+    background: var(--spotify-green) !important;
+  }
+
+  .bg-primary:hover {
+    background: var(--spotify-green-light) !important;
   }
 }
 
 /* Figma-style custom colors */
 @layer utilities {
   .bg-figma-bg {
-    background-color: #2c2c2c;
+    background-color: var(--bg-primary);
   }
 
   .bg-figma-panel {
-    background-color: #333333;
+    background-color: var(--bg-secondary);
   }
 
   .bg-figma-hover {
-    background-color: #404040;
+    background-color: var(--bg-tertiary);
   }
 
   .border-figma-border {
-    border-color: #444444;
+    border-color: var(--border-color);
   }
 
   .text-figma-muted {
-    color: #8e8e93;
+    color: var(--text-muted);
   }
 
   .text-figma-accent {
-    color: #1db954;
+    color: var(--spotify-green);
   }
 }
 
-/* Custom scrollbar to match Figma */
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
+  background: var(--bg-tertiary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
+  background: var(--border-color);
   border-radius: 4px;
+  transition: background-color var(--transition-fast) ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+  background: var(--spotify-green);
 }
 
 .no-resize {
   resize: none;
+}
+
+/* Input focus states */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--spotify-green) !important;
+  outline: none !important;
+}
+
+input:hover:not(:focus),
+textarea:hover:not(:focus),
+select:hover:not(:focus) {
+  border-color: var(--spotify-green-dark);
 }
 
 /* Custom select/dropdown styles */
@@ -142,23 +183,29 @@ select {
   background-repeat: no-repeat;
   background-position: right 8px center;
   padding-right: 28px;
+  cursor: pointer;
 }
 
-/* Custom range slider styles */
+select:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231DB954' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+/* Custom range slider */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 4px;
-  background: hsl(var(--border));
+  background: var(--bg-tertiary);
   border-radius: 2px;
   outline: none;
+  cursor: pointer;
 }
 
 input[type="range"]::-webkit-slider-track {
   width: 100%;
   height: 4px;
-  background: hsl(var(--border));
+  background: var(--bg-tertiary);
   border-radius: 2px;
 }
 
@@ -168,14 +215,19 @@ input[type="range"]::-webkit-slider-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: hsl(var(--primary));
+  background: var(--spotify-green);
   cursor: pointer;
+  transition: background-color var(--transition-fast) ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--spotify-green-light);
 }
 
 input[type="range"]::-moz-range-track {
   width: 100%;
   height: 4px;
-  background: hsl(var(--border));
+  background: var(--bg-tertiary);
   border-radius: 2px;
   border: none;
 }
@@ -184,56 +236,33 @@ input[type="range"]::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: hsl(var(--primary));
+  background: var(--spotify-green);
   cursor: pointer;
   border: none;
+  transition: background-color var(--transition-fast) ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: var(--spotify-green-light);
 }
 
 input[type="range"]:focus {
   outline: none;
 }
 
-input[type="range"]:focus::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+/* Interactive hover states for panels and cards */
+.panel-interactive {
+  transition: background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
 }
 
-/* Slider Thumb Styling */
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #1DB954;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  margin-top: -4px;
-  /* Adjust based on track height if needed */
+.panel-interactive:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--spotify-green);
 }
 
-input[type=range]::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #1DB954;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-input[type=range]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 4px;
-  cursor: pointer;
-  background: #404040;
-  /* figma-border or muted */
-  border-radius: 2px;
-}
-
-input[type=range]::-moz-range-track {
-  width: 100%;
-  height: 4px;
-  cursor: pointer;
-  background: #404040;
-  border-radius: 2px;
+/* Active/Selected state with green accent */
+.selected,
+.active {
+  border-color: var(--spotify-green) !important;
+  background-color: rgba(29, 185, 84, 0.1) !important;
 }
