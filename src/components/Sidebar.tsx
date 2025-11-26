@@ -31,7 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
 
   // Filter and sort projects
   const filteredAndSortedPrompts = React.useMemo(() => {
-    let filtered = prompts.filter(prompt => 
+    let filtered = prompts.filter(prompt =>
       prompt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       prompt.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
 
   const handleSaveProjectName = () => {
     if (!editingProjectId || !editingProjectName.trim()) return;
-    
+
     const project = prompts.find(p => p.id === editingProjectId);
     if (project && project.name !== editingProjectName.trim()) {
       // This would need to be connected to the update project functionality
@@ -106,8 +106,6 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
             <div className="w-6 h-6 bg-gradient-to-br from-[#1DB954] to-[#14803a] rounded-t-lg rounded-bl-lg rounded-br-none flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-105">
               <span className="text-[11px] font-black text-black leading-none mt-[1px] ml-[1px]">B</span>
             </div>
-            {/* Small tail for the speech bubble effect */}
-            <div className="absolute -bottom-[3px] right-0 w-2 h-2 bg-[#14803a] clip-path-triangle transform rotate-180"></div>
           </div>
           <span className="tracking-tight text-white">Buza Studio</span>
         </div>
@@ -116,8 +114,8 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
       {/* Projects Section */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Projects Header */}
-        <div className="p-3 border-b border-figma-border">
-          <div className="flex items-center justify-between mb-2">
+        <div className="px-4 border-b border-figma-border">
+          <div className="h-8 flex items-center justify-between">
             <div className="text-[10px] font-bold text-figma-muted uppercase tracking-wider">
               Projects ({filteredAndSortedPrompts.length})
             </div>
@@ -131,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
           </div>
 
           {/* Search and Sort Controls */}
-          <div className="space-y-2">
+          <div className="py-2 space-y-2">
             <div className="relative">
               <SearchIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-figma-muted" />
               <input
@@ -139,10 +137,10 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-6 pr-2 py-1.5 bg-figma-bg border border-figma-border rounded text-xs text-white placeholder-figma-muted focus:border-figma-accent outline-none"
+                className="w-full pl-6 pr-2 py-1 bg-figma-bg border border-figma-border rounded text-xs text-white placeholder-figma-muted focus:border-figma-accent outline-none"
               />
             </div>
-            
+
             {/* Sort Controls */}
             <div className="flex items-center gap-2">
               <button
@@ -172,16 +170,15 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
               {searchQuery ? 'No projects found matching your search.' : 'No projects yet. Create your first project!'}
             </div>
           )}
-          
-          <div className="py-1">
+
+          <div className="">
             {filteredAndSortedPrompts.map((prompt) => (
               <div
                 key={prompt.id}
-                className={`group transition-colors ${
-                  activePromptId === prompt.id 
-                    ? 'bg-figma-hover' 
-                    : 'hover:bg-figma-bg/50'
-                }`}
+                className={`group transition-colors ${activePromptId === prompt.id
+                  ? 'bg-figma-hover'
+                  : 'hover:bg-figma-bg/50'
+                  }`}
               >
                 {editingProjectId === prompt.id ? (
                   <div className="px-3 py-2 space-y-2">
@@ -197,13 +194,13 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                       autoFocus
                     />
                     <div className="flex justify-end gap-1">
-                      <button 
+                      <button
                         onClick={handleCancelEditProject}
                         className="text-[10px] text-figma-muted hover:text-white px-2 py-0.5"
                       >
                         Cancel
                       </button>
-                      <button 
+                      <button
                         onClick={handleSaveProjectName}
                         className="text-[10px] bg-figma-accent text-white px-2 py-0.5 rounded"
                       >
@@ -236,14 +233,14 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                         title="More options"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
-                          <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-                          <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
+                          <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                          <circle cx="12" cy="19" r="1.5" fill="currentColor" />
                         </svg>
                       </button>
-                      
+
                       {activeDropdownId === prompt.id && (
-                        <div 
+                        <div
                           ref={dropdownRef}
                           className="absolute right-0 top-full mt-1 bg-figma-panel border border-figma-border rounded shadow-lg z-50 py-1 min-w-[120px]"
                         >

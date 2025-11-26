@@ -223,7 +223,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
                     <button
                         onClick={handleRun}
                         disabled={isRunning}
-                        className="flex items-center gap-1.5 px-4 py-1.5 bg-figma-accent hover:bg-[#1ed760] text-black rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 px-4 py-1.5 bg-[#1DB954] hover:bg-[#1ed760] text-black rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isRunning ? (
                             <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />

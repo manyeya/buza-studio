@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { PromptData, Variable, PromptVersion, PromptVariant } from '@/types';
+import { PromptData, Variable, PromptVersion, PromptVariant } from '../../types';
 import { CopyIcon, BookmarkIcon, RotateCcwIcon, PlusIcon, LayersIcon, TrashIcon, BookIcon } from './Icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { UniversalDropdown } from './ui/universal-dropdown';
 
 interface PropertiesPanelProps {
     prompt: PromptData;
@@ -270,54 +271,50 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     };
 
     return (
-        <div className="w-80 bg-figma-panel border-l border-figma-border flex flex-col h-full">
+        <div className="w-80 flex-shrink-0 bg-figma-panel border-l border-figma-border flex flex-col h-full">
 
             {/* Variants Header */}
-            <div className="p-3 border-b border-figma-border bg-[#252525]">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-figma-muted uppercase flex items-center gap-1">
-                        <LayersIcon className="w-3 h-3" /> Variants
-                    </span>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleSaveTemplateClick}
-                            className={`text-figma-muted hover:text-white transition-colors ${saveTemplateFeedback ? 'text-figma-success' : ''}`}
-                            title={saveTemplateFeedback ? "Saved!" : "Save Project as Template"}
-                        >
-                            <BookmarkIcon className="w-4 h-4" />
-                        </button>
-                        <button onClick={onAddVariant} className="text-figma-muted hover:text-white" title="Clone current as new variant">
-                            <PlusIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => onDeleteVariant(activeVariant.id)}
-                            className="text-figma-muted hover:text-figma-danger disabled:opacity-30"
-                            disabled={prompt.variants.length <= 1}
-                            title="Delete Variant"
-                        >
-                            <TrashIcon className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                    <select
+            <div className="h-14 border-b border-figma-border flex items-center justify-between px-3 shrink-0 gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <UniversalDropdown
                         value={prompt.activeVariantId}
-                        onChange={(e) => onUpdateProject({ activeVariantId: e.target.value })}
-                        className="flex-1 bg-figma-bg border border-figma-border rounded px-2 py-1.5 text-xs text-white focus:border-figma-accent focus:outline-none"
+                        onChange={(value) => onUpdateProject({ activeVariantId: value })}
+                        options={prompt.variants.map(v => ({ label: v.name, value: v.id }))}
+                        className="flex-1 bg-figma-bg border border-figma-border rounded px-2 py-1.5 text-xs text-white focus:border-figma-accent focus:outline-none hover:text-white"
+                    />
+                </div>
+                <div className="flex gap-0.5 shrink-0">
+                    <button
+                        onClick={handleSaveTemplateClick}
+                        className={`text-figma-muted hover:text-white transition-colors p-1.5 hover:bg-figma-hover rounded ${saveTemplateFeedback ? 'text-figma-success' : ''}`}
+                        title={saveTemplateFeedback ? "Saved!" : "Save Project as Template"}
                     >
-                        {prompt.variants.map(v => (
-                            <option key={v.id} value={v.id}>{v.name}</option>
-                        ))}
-                    </select>
+                        <BookmarkIcon className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        onClick={onAddVariant}
+                        className="text-figma-muted hover:text-white transition-colors p-1.5 hover:bg-figma-hover rounded"
+                        title="Clone current as new variant"
+                    >
+                        <PlusIcon className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        onClick={() => onDeleteVariant(activeVariant.id)}
+                        className="text-figma-muted hover:text-figma-danger disabled:opacity-30 transition-colors p-1.5 hover:bg-figma-hover rounded"
+                        disabled={prompt.variants.length <= 1}
+                        title="Delete Variant"
+                    >
+                        <TrashIcon className="w-3.5 h-3.5" />
+                    </button>
                 </div>
             </div>
 
             {/* Header Tabs */}
-            <div className="h-10 shrink-0 border-b border-figma-border flex bg-figma-panel z-10 sticky top-0">
+            <div className="h-8 shrink-0 border-b border-figma-border flex bg-figma-panel z-10 sticky top-0">
                 <button
                     onClick={() => setActiveTab('SETTINGS')}
-                    className={`flex-1 text-[11px] font-medium tracking-wide border-b-2 transition-all focus:outline-none ${activeTab === 'SETTINGS'
-                        ? 'border-figma-accent text-white'
+                    className={`flex-1 text-[10px] font-medium tracking-wide border-b-2 transition-all focus:outline-none ${activeTab === 'SETTINGS'
+                        ? 'border-[#1DB954] text-[#1DB954]'
                         : 'border-transparent text-figma-muted hover:text-white'
                         }`}
                 >
@@ -325,8 +322,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 </button>
                 <button
                     onClick={() => setActiveTab('VERSIONS')}
-                    className={`flex-1 text-[11px] font-medium tracking-wide border-b-2 transition-all focus:outline-none ${activeTab === 'VERSIONS'
-                        ? 'border-figma-accent text-white'
+                    className={`flex-1 text-[10px] font-medium tracking-wide border-b-2 transition-all focus:outline-none ${activeTab === 'VERSIONS'
+                        ? 'border-[#1DB954] text-[#1DB954]'
                         : 'border-transparent text-figma-muted hover:text-white'
                         }`}
                 >
@@ -459,7 +456,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         <button
                                             key={fmt}
                                             onClick={() => setExportFormat(fmt)}
-                                            className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors ${exportFormat === fmt ? 'bg-figma-accent text-black' : 'text-figma-muted hover:bg-figma-hover hover:text-white'}`}
+                                            className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors ${exportFormat === fmt ? 'bg-[#1DB954] text-black' : 'text-figma-muted hover:bg-figma-hover hover:text-white'}`}
                                         >
                                             {fmt === 'PROMPT' ? 'TEXT' : fmt}
                                         </button>
