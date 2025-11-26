@@ -35,11 +35,6 @@ const INITIAL_PROMPT: PromptData = {
   projectVariables: []
 };
 
-const INITIAL_VARS: Variable[] = [
-  { id: 'glob-1', key: 'tone', value: 'Professional' },
-  { id: 'glob-2', key: 'audience', value: 'Experts' },
-  { id: 'glob-3', key: 'output_format', value: 'JSON' }
-];
 
 function convertProjectToPromptData(project: Project): PromptData {
   const variants: PromptVariant[] = project.variants.map((variant, index) => {

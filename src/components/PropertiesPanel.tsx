@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { PromptData, Variable, PromptVersion, PromptVariant } from '../types';
+import { PromptData, Variable, PromptVersion, PromptVariant } from '@/types';
 import { CopyIcon, BookmarkIcon, RotateCcwIcon, PlusIcon, LayersIcon, TrashIcon, BookIcon } from './Icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
