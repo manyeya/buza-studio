@@ -93,8 +93,15 @@ export function useUpdateProject() {
     }) => {
       if (updates.name && updates.name !== currentName) {
         // Rename project
-        await projectSystem.createProject(updates.name);
         const existingProject = await projectSystem.getProject(currentName);
+        
+        // Create new project with preserved timestamps
+        await projectSystem.createProject(updates.name);
+        await projectSystem.updateProjectTimestamps(
+          updates.name, 
+          existingProject.createdAt, 
+          existingProject.updatedAt
+        );
 
         for (const variant of existingProject.variants) {
           await projectSystem.createVariant(
@@ -105,6 +112,12 @@ export function useUpdateProject() {
           );
         }
 
+        // Copy variables and description to new project
+        await projectSystem.updateProjectVariables(updates.name, existingProject.variables);
+        if (existingProject.description) {
+          await projectSystem.updateProjectDescription(updates.name, existingProject.description);
+        }
+
         await projectSystem.deleteProject(currentName);
 
         const newProject = await projectSystem.getProject(updates.name);
@@ -113,6 +126,8 @@ export function useUpdateProject() {
         if (updates.description !== undefined) {
           await projectSystem.updateProjectDescription(currentName, updates.description);
         }
+        // Update the updatedAt timestamp for any other updates
+        await projectSystem.updateProjectTimestamps(currentName, undefined, Date.now());
         return { currentName, updates };
       }
     },

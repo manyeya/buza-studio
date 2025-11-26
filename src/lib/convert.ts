@@ -24,7 +24,9 @@ export const INITIAL_PROMPT: PromptData = {
       versions: []
     }
   ],
-  projectVariables: []
+  projectVariables: [],
+  createdAt: Date.now(),
+  updatedAt: Date.now()
 };
 
 export function convertProjectToPromptData(project: Project): PromptData {
@@ -64,6 +66,8 @@ export function convertProjectToPromptData(project: Project): PromptData {
     description: project.description || '',
     activeVariantId: variants[0]?.id || '',
     variants,
-    projectVariables: project.variables || []
+    projectVariables: project.variables || [],
+    createdAt: project.createdAt || Date.now(),
+    updatedAt: project.updatedAt || Date.now()
   };
 }
