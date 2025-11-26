@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { PromptData, PromptVariant } from '../../types';
 import { PlayIcon, MagicIcon, CopyIcon, SparklesIcon, KeyboardIcon } from './Icons';
 import Editor from 'react-simple-code-editor';
@@ -37,65 +37,45 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationDescription, setGenerationDescription] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveFeedback, setSaveFeedback] = useState(false);
 
     // Local state for editor content to prevent cursor jumping
     const [code, setCode] = useState(variant.content);
+    
+    // Local state for project name to prevent immediate updates
+    const [localProjectName, setLocalProjectName] = useState(projectName);
+    
+    // Local state for variant name
+    const [localVariantName, setLocalVariantName] = useState(variant.name);
+    
+    // Dirty state tracking
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    
+    // Check for unsaved changes
+    useEffect(() => {
+        const projectNameChanged = localProjectName !== projectName;
+        const variantNameChanged = localVariantName !== variant.name;
+        const contentChanged = code !== variant.content;
+        
+        setHasUnsavedChanges(projectNameChanged || variantNameChanged || contentChanged);
+    }, [localProjectName, localVariantName, code, projectName, variant.name, variant.content]);
+    
+    // Sync local state when variant changes (switching variants)
+    useEffect(() => {
+        setCode(variant.content);
+        setLocalVariantName(variant.name);
+    }, [variant.id]);
+    
+    // Sync local project name when prop changes
+    useEffect(() => {
+        setLocalProjectName(projectName);
+    }, [projectName]);
 
     // Empty State Logic
     const [emptyStateStep, setEmptyStateStep] = useState<'CHOICE' | 'MAGIC' | 'MANUAL'>('CHOICE');
     // We use an ID for the editor textarea to focus it, as the Editor component might not forward ref easily to the textarea
     const EDITOR_ID = "prompt-editor-textarea";
-
-    // Sync local state when variant changes (switching variants)
-    useEffect(() => {
-        setCode(variant.content);
-    }, [variant.id]);
-
-    // Sync local state if variant content changes externally (e.g. AI generation)
-    // We only update if the length difference is significant or it's a completely different string,
-    // to avoid overwriting local typing if there's a race condition.
-    // Ideally, onUpdateVariant should only be called by us, but AI features might update it too.
-    useEffect(() => {
-        if (variant.content !== code) {
-            // Simple check: if the variant content is what we just saved, don't update.
-            // But here we want to catch external updates.
-            // For now, we'll trust that if variant.content changes and it's NOT what we have in local state,
-            // it might be an external update.
-            // However, to avoid the cursor jump loop, we usually only sync on ID change or explicit external triggers.
-            // Let's rely on the fact that we debounce the update UPWARDS.
-            // If we receive a prop update that matches our debounced value, we do nothing.
-            // If we receive a prop update that is different, it might be from AI.
-            // Let's assume AI updates happen when we are NOT typing.
-        }
-    }, [variant.content]);
-
-    // Actually, a better pattern is:
-    // 1. Initialize local state from prop.
-    // 2. On change, update local state AND debounce update prop.
-    // 3. If prop changes and is different from local state, update local state (carefully).
-
-    // Let's refine the sync logic:
-    // We want to update local code if variant.content changes AND it's not the result of our own typing.
-    // Since we can't easily distinguish, a common approach is to only sync when variant.id changes, 
-    // OR if we know an external action happened (like optimize/generate).
-    // For now, let's stick to syncing on variant.id and maybe we can add a specific check for AI updates if needed.
-    // But wait, if the user switches variants, we MUST update.
-    // If the user runs "AI Optimize", the parent updates variant.content. We need to reflect that.
-    // So we should update `code` when `variant.content` changes, BUT we need to avoid the loop.
-    // The loop happens because: Type 'a' -> setCode('a') -> debounce -> onUpdateVariant('a') -> prop 'a' comes back -> setCode('a').
-    // If prop 'a' === code 'a', setting it again is fine (React bails out).
-    // The issue is usually timing.
-    // Let's try just syncing on variant.id for now, and handle explicit AI updates via the actions.
-    // Actually, looking at the code, `handleOptimize` calls `onOptimize` which likely updates the variant.
-    // We can add a useEffect that updates `code` if `variant.content` changes and we are not currently typing?
-    // Or just check if they are different.
-
-    useEffect(() => {
-        if (variant.content !== code) {
-            setCode(variant.content);
-        }
-    }, [variant.content]);
-
 
     useEffect(() => {
         // Reset empty state workflow when switching variants
@@ -113,16 +93,44 @@ const Workspace: React.FC<WorkspaceProps> = ({
         }
     }, [variant.content]);
 
-    // Debounced save to parent
-    useEffect(() => {
-        const handler = setTimeout(() => {
+    // Handle save with feedback
+    const handleSave = async () => {
+        if (!hasUnsavedChanges) return;
+        
+        setIsSaving(true);
+        try {
+            // Save all changes at once
+            const updates: Partial<PromptVariant> = {};
+            const projectUpdates: Partial<PromptData> = {};
+            
             if (code !== variant.content) {
-                onUpdateVariant({ content: code });
+                updates.content = code;
             }
-        }, 500); // 500ms debounce
-
-        return () => clearTimeout(handler);
-    }, [code]);
+            if (localVariantName !== variant.name) {
+                updates.name = localVariantName;
+            }
+            if (localProjectName !== projectName) {
+                projectUpdates.name = localProjectName;
+            }
+            
+            // Apply updates
+            if (Object.keys(updates).length > 0) {
+                onUpdateVariant(updates);
+            }
+            if (Object.keys(projectUpdates).length > 0) {
+                onUpdateProject(projectUpdates);
+            }
+            
+            // Call the parent save function
+            onSave();
+            
+            // Show feedback
+            setSaveFeedback(true);
+            setTimeout(() => setSaveFeedback(false), 2000);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
 
     const handleRun = async () => {
@@ -141,7 +149,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
         if (!generationDescription.trim()) return;
         setIsGenerating(true);
         try {
-            await onGenerateStructure(generationDescription);
+            onGenerateStructure(generationDescription);
             setGenerationDescription('');
         } catch (e) {
             console.error(e);
@@ -187,15 +195,15 @@ const Workspace: React.FC<WorkspaceProps> = ({
                     <div className="flex flex-col">
                         <input
                             type="text"
-                            value={projectName}
-                            onChange={(e) => onUpdateProject({ name: e.target.value })}
+                            value={localProjectName}
+                            onChange={(e) => setLocalProjectName(e.target.value)}
                             className="bg-transparent text-sm font-medium text-white focus:outline-none border border-transparent focus:border-figma-border rounded px-1 -ml-1 hover:border-figma-border transition-colors w-64"
                             placeholder="Project Name"
                         />
                         <input
                             type="text"
-                            value={variant.name}
-                            onChange={(e) => onUpdateVariant({ name: e.target.value })}
+                            value={localVariantName}
+                            onChange={(e) => setLocalVariantName(e.target.value)}
                             className="bg-transparent text-[10px] text-figma-muted focus:outline-none focus:text-white border border-transparent focus:border-figma-border rounded px-1 -ml-1 hover:border-figma-border transition-colors w-40"
                             placeholder="Variant Name"
                         />
@@ -204,20 +212,22 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={onSave}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-figma-panel border border-figma-border hover:bg-figma-hover transition-colors"
-                        title="Save to Disk"
+                        onClick={handleSave}
+                        disabled={!hasUnsavedChanges || isSaving}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                            hasUnsavedChanges 
+                                ? 'bg-[#1DB954] hover:bg-[#1ed760] text-black border border-[#1DB954]' 
+                                : 'bg-figma-panel border border-figma-border text-figma-muted'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        title={hasUnsavedChanges ? "Save changes" : "No changes to save"}
                     >
-                        💾 Save
-                    </button>
-                    <button
-                        onClick={handleOptimize}
-                        disabled={isOptimizing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium text-figma-text hover:bg-figma-hover transition-colors disabled:opacity-50"
-                        title="AI Improve"
-                    >
-                        <MagicIcon className={`w-3.5 h-3.5 ${isOptimizing ? 'animate-pulse text-figma-accent' : 'text-figma-accent'}`} />
-                        {isOptimizing ? 'Optimizing...' : 'AI Refine'}
+                        {isSaving ? (
+                            <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                        ) : saveFeedback ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        ) : (""
+                        )}
+                        {isSaving ? 'Saving...' : saveFeedback ? 'Saved!' : 'Save'}
                     </button>
                     <div className="w-px h-4 bg-figma-border mx-1" />
                     <button
@@ -242,9 +252,19 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 <div className="flex-1 flex flex-col border-r border-figma-border min-w-[300px] relative">
                     <div className="h-8 bg-figma-bg border-b border-figma-border flex items-center justify-between px-4">
                         <span className="text-[10px] uppercase font-bold text-figma-muted tracking-wider">Prompt Template</span>
-                        <button onClick={copyToClipboard} className="text-figma-muted hover:text-white" title="Copy">
-                            <CopyIcon className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={handleOptimize}
+                                disabled={isOptimizing}
+                                className="text-figma-muted hover:text-white transition-colors p-1 hover:bg-figma-hover rounded"
+                                title="AI Refine"
+                            >
+                                <MagicIcon className={`w-3 h-3 ${isOptimizing ? 'animate-pulse text-figma-accent' : 'text-figma-accent'}`} />
+                            </button>
+                            <button onClick={copyToClipboard} className="text-figma-muted hover:text-white p-1 hover:bg-figma-hover rounded" title="Copy">
+                                <CopyIcon className="w-3 h-3" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Empty State Overlay */}

@@ -148,7 +148,7 @@ export function useUpdateProject() {
         queryClient.setQueryData<PromptData[]>(PROJECTS_QUERY_KEY, (old) =>
           old?.map(p => p.id === activePromptId ? { ...p, ...result.updates } : p) ?? []
         );
-        toast.success(`Project "${result.updates.name}" updated`);
+        // toast.success(`Project "${result.updates.name}" updated`);
       }
     },
     onError: () => {

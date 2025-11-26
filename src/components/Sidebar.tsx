@@ -2,6 +2,7 @@ import React from 'react';
 import { PromptData } from '../../types';
 import { FileTextIcon, PlusIcon, BoxIcon, GridIcon, ChevronDownIcon, SearchIcon, SortAscIcon, SortDescIcon, HistoryIcon, TrashIcon } from './Icons';
 import { useState, useRef, useEffect } from 'react';
+import { Button } from './ui/button';
 
 interface SidebarProps {
   prompts: PromptData[];
@@ -244,19 +245,21 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                           ref={dropdownRef}
                           className="absolute right-0 top-full mt-1 bg-figma-panel border border-figma-border rounded shadow-lg z-50 py-1 min-w-[120px]"
                         >
-                          <button
+                          <Button
                             onClick={() => {
                               handleStartEditProject(prompt);
                               setActiveDropdownId(null);
                             }}
+                            variant="ghost"
                             className="w-full text-left px-3 py-1.5 text-xs text-white hover:bg-figma-hover transition-colors flex items-center gap-2"
                           >
                             <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M12.146 5.596l.708-.708a.5.5 0 00-.708-.708l-.708.708a.5.5 0 00.708.708zM3.854 8.854l5.646-5.646-.708-.708L3.146 8.146l.708.708zm6.292-6.292l1.415 1.414.708-.708-1.415-1.414-.708.708zm-7.071 7.071L1.5 12.207V14h1.793l2.565-2.565-.708-.708z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
                             </svg>
                             Rename
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="destructive"
                             onClick={() => {
                               onDeleteProject(prompt.name);
                               setActiveDropdownId(null);
@@ -265,7 +268,7 @@ const Sidebar: React.FC<SidebarProps> = ({ prompts, activePromptId, onSelectProm
                           >
                             <TrashIcon className="w-3 h-3" />
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
