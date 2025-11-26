@@ -5,11 +5,14 @@ import PropertiesPanel from './src/components/PropertiesPanel';
 import Workspace from './src/components/Workspace';
 import TemplateLibraryModal from './src/components/TemplateLibraryModal';
 import VariableLibraryModal from './src/components/VariableLibraryModal';
+import SettingsModal from './src/components/SettingsModal';
 import {
   activePromptIdAtom,
   isTemplateModalOpenAtom,
-  isVariableLibraryOpenAtom
+  isVariableLibraryOpenAtom,
+  isSettingsModalOpenAtom
 } from './src/atoms';
+import { useBunApi } from './src/hooks/useBunApi';
 import {
   useProjects,
   useCreateProject,
@@ -38,6 +41,7 @@ const App: React.FC = () => {
   const [activePromptId, setActivePromptId] = useAtom(activePromptIdAtom);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useAtom(isTemplateModalOpenAtom);
   const [isVariableLibraryOpen, setIsVariableLibraryOpen] = useAtom(isVariableLibraryOpenAtom);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useAtom(isSettingsModalOpenAtom);
 
   // React Query hooks for data
   const { data: prompts = [], isLoading } = useProjects();
@@ -60,6 +64,10 @@ const App: React.FC = () => {
   const runPrompt = useRunPrompt();
   const optimizePrompt = useOptimizePrompt();
   const generateStructure = useGeneratePromptStructure();
+
+  // Bun API sidecar integration
+  const { isReady: isBunApiReady, apiPort, fetchApi, error: bunApiError } = useBunApi();
+
 
   // Set initial active prompt when projects load
   React.useEffect(() => {
@@ -233,6 +241,8 @@ const App: React.FC = () => {
   const closeTemplateModal = () => setIsTemplateModalOpen(false);
   const openVariableLibrary = () => setIsVariableLibraryOpen(true);
   const closeVariableLibrary = () => setIsVariableLibraryOpen(false);
+  const openSettings = () => setIsSettingsModalOpen(true);
+  const closeSettings = () => setIsSettingsModalOpen(false);
 
   const handleRunPrompt = () => {
     if (!activeVariant || !activePrompt) return;
@@ -263,6 +273,8 @@ const App: React.FC = () => {
     }
   };
 
+
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-screen bg-background text-foreground items-center justify-center">
@@ -276,64 +288,79 @@ const App: React.FC = () => {
 
   return (
     <div className="fixed inset-0 flex h-screen w-screen bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary selection:text-primary-foreground" style={{ height: '100vh' }}>
-      <Sidebar
-        prompts={prompts}
-        activePromptId={activePromptId}
-        onSelectPrompt={handleSelectPrompt}
-        onNewPrompt={handleNewPrompt}
-        onOpenTemplates={openTemplateModal}
-        onUpdateProjectVariables={handleUpdateProjectVariables}
-        onInsertVariable={handleInsertVariable}
-        onDeleteProject={handleDeleteProject}
-      />
-
-      {activePrompt && activeVariant ? (
-        <>
-          <Workspace
-            variant={activeVariant}
-            projectName={activePrompt.name}
-            onUpdateVariant={handleUpdateVariant}
-            onUpdateProject={handleUpdateProject}
-            onSave={handleSaveVariant}
-            onRun={handleRunPrompt}
-            onOptimize={handleOptimizePrompt}
-            onGenerateStructure={handleGenerateStructure}
-          />
-          <PropertiesPanel
-            prompt={activePrompt}
-            activeVariant={activeVariant}
-            onUpdateVariant={handleUpdateVariant}
-            onUpdateProject={handleUpdateProject}
-            onAddVariant={handleAddVariant}
-            onDeleteVariant={handleDeleteVariant}
-            onSaveAsTemplate={handleSaveAsTemplate}
-            onSaveVersion={handleSaveVersion}
-            onRestoreVersion={handleRestoreVersion}
-            onOpenVariableLibrary={openVariableLibrary}
-            onSaveVariableToLibrary={handleAddToLibrary}
-          />
-        </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">Select or create a prompt</div>
-      )}
-
-      {isTemplateModalOpen && (
-        <TemplateLibraryModal
-          templates={templates}
-          onClose={closeTemplateModal}
-          onSelect={handleCreateFromTemplate}
+      <div className="flex w-full h-full">
+        <Sidebar
+          prompts={prompts}
+          activePromptId={activePromptId}
+          onSelectPrompt={handleSelectPrompt}
+          onNewPrompt={handleNewPrompt}
+          onOpenTemplates={openTemplateModal}
+          onUpdateProjectVariables={handleUpdateProjectVariables}
+          onInsertVariable={handleInsertVariable}
+          onDeleteProject={handleDeleteProject}
+          onOpenSettings={openSettings}
         />
-      )}
 
-      {isVariableLibraryOpen && (
-        <VariableLibraryModal
-          library={variableLibrary}
-          onClose={closeVariableLibrary}
-          onImport={handleImportVariable}
-          onAddToLibrary={handleAddToLibrary}
-          onRemoveFromLibrary={handleRemoveFromLibrary}
-        />
-      )}
+        {activePrompt && activeVariant ? (
+          <>
+            <Workspace
+              variant={activeVariant}
+              projectName={activePrompt.name}
+              onUpdateVariant={handleUpdateVariant}
+              onUpdateProject={handleUpdateProject}
+              onSave={handleSaveVariant}
+              onRun={handleRunPrompt}
+              onOptimize={handleOptimizePrompt}
+              onGenerateStructure={handleGenerateStructure}
+            />
+            <PropertiesPanel
+              prompt={activePrompt}
+              activeVariant={activeVariant}
+              onUpdateVariant={handleUpdateVariant}
+              onUpdateProject={handleUpdateProject}
+              onAddVariant={handleAddVariant}
+              onDeleteVariant={handleDeleteVariant}
+              onSaveAsTemplate={handleSaveAsTemplate}
+              onSaveVersion={handleSaveVersion}
+              onRestoreVersion={handleRestoreVersion}
+              onOpenVariableLibrary={openVariableLibrary}
+              onSaveVariableToLibrary={handleAddToLibrary}
+            />
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">Select or create a prompt</div>
+        )}
+
+        {isTemplateModalOpen && (
+          <TemplateLibraryModal
+            templates={templates}
+            onClose={closeTemplateModal}
+            onSelect={handleCreateFromTemplate}
+          />
+        )}
+
+        {isVariableLibraryOpen && (
+          <VariableLibraryModal
+            library={variableLibrary}
+            onClose={closeVariableLibrary}
+            onImport={handleImportVariable}
+            onAddToLibrary={handleAddToLibrary}
+            onRemoveFromLibrary={handleRemoveFromLibrary}
+          />
+        )}
+
+        {isSettingsModalOpen && (
+          <SettingsModal
+            isOpen={isSettingsModalOpen}
+            onClose={closeSettings}
+            serverStatus={{
+              isReady: isBunApiReady,
+              port: apiPort,
+              error: bunApiError
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 };
