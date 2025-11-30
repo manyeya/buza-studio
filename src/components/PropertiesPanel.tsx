@@ -430,7 +430,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
                             {activeVariant.variables.length === 0 && (
                                 <div className="text-[11px] text-figma-muted italic px-1">
-                                    Add variables like {'{{name}}'} to your prompt.
+                                    Type {'{{name}}'} in your prompt to auto-detect variables.
                                 </div>
                             )}
 
@@ -448,7 +448,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                         </div>
 
                         {/* Export Section */}
-                        <div className="p-4 bg-[#252525]">
+                        <div className="p-4 bg-[#252525] border-t border-figma-border">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-[11px] font-bold text-figma-muted uppercase">Export (Variant)</span>
                                 <div className="flex gap-1">

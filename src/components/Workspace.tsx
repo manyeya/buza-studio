@@ -5,6 +5,7 @@ import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
+import { useVariableTracking } from '../hooks/useVariableTracking';
 
 // Define custom grammar for variables
 languages.prompt = {
@@ -42,31 +43,38 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
     // Local state for editor content to prevent cursor jumping
     const [code, setCode] = useState(variant.content);
-    
+
     // Local state for project name to prevent immediate updates
     const [localProjectName, setLocalProjectName] = useState(projectName);
-    
+
     // Local state for variant name
     const [localVariantName, setLocalVariantName] = useState(variant.name);
-    
+
+    // Automatic variable tracking from content
+    const handleUpdateVariables = useCallback((variables: any[]) => {
+        onUpdateVariant({ variables });
+    }, [onUpdateVariant]);
+
+    useVariableTracking(code, variant.variables, handleUpdateVariables);
+
     // Dirty state tracking
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    
+
     // Check for unsaved changes
     useEffect(() => {
         const projectNameChanged = localProjectName !== projectName;
         const variantNameChanged = localVariantName !== variant.name;
         const contentChanged = code !== variant.content;
-        
+
         setHasUnsavedChanges(projectNameChanged || variantNameChanged || contentChanged);
     }, [localProjectName, localVariantName, code, projectName, variant.name, variant.content]);
-    
+
     // Sync local state when variant changes (switching variants)
     useEffect(() => {
         setCode(variant.content);
         setLocalVariantName(variant.name);
     }, [variant.id]);
-    
+
     // Sync local project name when prop changes
     useEffect(() => {
         setLocalProjectName(projectName);
@@ -96,13 +104,13 @@ const Workspace: React.FC<WorkspaceProps> = ({
     // Handle save with feedback
     const handleSave = async () => {
         if (!hasUnsavedChanges) return;
-        
+
         setIsSaving(true);
         try {
             // Save all changes at once
             const updates: Partial<PromptVariant> = {};
             const projectUpdates: Partial<PromptData> = {};
-            
+
             if (code !== variant.content) {
                 updates.content = code;
             }
@@ -112,7 +120,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
             if (localProjectName !== projectName) {
                 projectUpdates.name = localProjectName;
             }
-            
+
             // Apply updates
             if (Object.keys(updates).length > 0) {
                 onUpdateVariant(updates);
@@ -120,10 +128,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
             if (Object.keys(projectUpdates).length > 0) {
                 onUpdateProject(projectUpdates);
             }
-            
+
             // Call the parent save function
             onSave();
-            
+
             // Show feedback
             setSaveFeedback(true);
             setTimeout(() => setSaveFeedback(false), 2000);
@@ -214,11 +222,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
                     <button
                         onClick={handleSave}
                         disabled={!hasUnsavedChanges || isSaving}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                            hasUnsavedChanges 
-                                ? 'bg-[#1DB954] hover:bg-[#1ed760] text-black border border-[#1DB954]' 
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${hasUnsavedChanges
+                                ? 'bg-[#1DB954] hover:bg-[#1ed760] text-black border border-[#1DB954]'
                                 : 'bg-figma-panel border border-figma-border text-figma-muted'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         title={hasUnsavedChanges ? "Save changes" : "No changes to save"}
                     >
                         {isSaving ? (

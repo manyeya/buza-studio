@@ -8,3 +8,6 @@ export const isSettingsModalOpenAtom = atom<boolean>(false);
 
 // Derived atom for active variant ID within a prompt
 export const activeVariantIdAtom = atom<string | null>(null);
+
+// Atom to track detected variant variables from content
+export const detectedVariantVariablesAtom = atom<Set<string>>(new Set<string>());

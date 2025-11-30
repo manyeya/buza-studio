@@ -1,9 +1,9 @@
 import React from 'react';
 import { PromptData } from '../../types';
 import { FileTextIcon, PlusIcon, BoxIcon, GridIcon, ChevronDownIcon, SearchIcon, SortAscIcon, SortDescIcon, HistoryIcon, TrashIcon } from './Icons';
-import { useState, useRef, useEffect } from 'react';
+import { useState,  } from 'react';
 import { Button } from './ui/button';
-import { Item, ItemActions, ItemContent, ItemDescription, ItemFooter, ItemMedia, ItemTitle } from './ui/item';
+import { Item, ItemActions, ItemContent, ItemFooter, ItemMedia, } from './ui/item';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { DotsVerticalIcon } from '@radix-ui/react-icons';
 import { PencilIcon } from 'lucide-react';
