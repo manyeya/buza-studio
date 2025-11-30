@@ -1,7 +1,7 @@
 <div align="center">
   <img src="public/logo.svg" width="120" height="120" alt="Buza Studio Logo" />
   <h1>Buza Studio</h1>
-  <p><strong>The Ultimate Local-First Prompt Engineering Environment</strong></p>
+  <p><strong>The Obsidian for your prompts</strong></p>
   
   <p>
     <a href="https://tauri.app"><img src="https://img.shields.io/badge/Tauri-2.0-FEC130?style=flat&logo=tauri&logoColor=black" alt="Tauri" /></a>
@@ -13,16 +13,25 @@
 
 <br />
 
-**Buza Studio** is a high-fidelity, node-based prompt engineering tool designed for developers and AI engineers who demand precision and aesthetics. Built with a modern dark theme, it offers a premium, distraction-free environment for crafting, testing, and optimizing LLM prompts.
+**Buza Studio** is a local-first prompt engineering environment designed for developers and AI engineers. It offers a distraction-free workspace for crafting, testing, and optimizing LLM prompts with complete data privacy.
+
+## 💎 Why "The Obsidian for Prompts"?
+
+Just like Obsidian changed how we take notes, Buza Studio aims to change how we engineer prompts:
+
+- **Local-First & Private**: Your prompts live on your machine. No cloud lock-in, no data telemetry.
+- **Distraction-Free**: A clean, minimal interface that lets you focus on the text.
+- **Fast & Native**: Built with Tauri and Rust for blazing fast performance.
+- **Your Data, Your Rules**: You own your prompt library. Version it with Git, sync it how you want.
 
 ## ✨ Features
 
-- **🎨 High-Fidelity UI**: A sleek, dark-mode interface with "Vibrant Green" (`#1DB954`) accents, glassmorphism effects, and smooth transitions.
+- **⚡ Local-First & Fast**: Built on **Tauri** and **Bun** for native performance. Your prompts stay on your machine, ensuring complete data privacy.
 - **🧠 Smart Variable Tracking**: Automatically detects and tracks variables in your prompts using `{{variable}}` syntax.
 - **🤖 AI Integration**: Built-in support for **Google Gemini** to generate prompt structures, optimize content, and run variations.
-- **⚡ Local-First & Fast**: Built on **Tauri** and **Bun** for native performance and complete data privacy. Your prompts stay on your machine.
 - **🔄 Version Control**: Save versions, restore history, and manage prompt variants effortlessly.
 - **🧩 Template Library**: Start quickly with built-in templates or save your own for reuse.
+- **📝 Distraction-Free Editor**: A clean, focused interface designed for writing and iterating on complex prompts.
 
 ## 🛠️ Tech Stack
 
@@ -68,15 +77,6 @@ bun tauri:dev
 ```
 
 This will launch the native application window.
-
-## 🎨 Brand Identity
-
-Buza Studio follows a strict design system to ensure a premium user experience.
-
-- **Primary Color**: Vibrant Green `#1DB954`
-- **Backgrounds**: Dark Grays `#121212`, `#181818`, `#282828`
-- **Typography**: [Inter](https://fonts.google.com/specimen/Inter) (Google Fonts)
-- **Iconography**: Lucide React & Radix Icons
 
 ## 🤝 Contributing
 
