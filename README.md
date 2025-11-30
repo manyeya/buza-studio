@@ -13,11 +13,11 @@
 
 <br />
 
-**Buza Studio** is a high-fidelity, node-based prompt engineering tool designed for developers and AI engineers who demand precision and aesthetics. Built with a "Spotify-inspired" dark theme, it offers a premium, distraction-free environment for crafting, testing, and optimizing LLM prompts.
+**Buza Studio** is a high-fidelity, node-based prompt engineering tool designed for developers and AI engineers who demand precision and aesthetics. Built with a modern dark theme, it offers a premium, distraction-free environment for crafting, testing, and optimizing LLM prompts.
 
 ## ✨ Features
 
-- **🎨 High-Fidelity UI**: A sleek, dark-mode interface with "Spotify Green" (`#1DB954`) accents, glassmorphism effects, and smooth transitions.
+- **🎨 High-Fidelity UI**: A sleek, dark-mode interface with "Vibrant Green" (`#1DB954`) accents, glassmorphism effects, and smooth transitions.
 - **🧠 Smart Variable Tracking**: Automatically detects and tracks variables in your prompts using `{{variable}}` syntax.
 - **🤖 AI Integration**: Built-in support for **Google Gemini** to generate prompt structures, optimize content, and run variations.
 - **⚡ Local-First & Fast**: Built on **Tauri** and **Bun** for native performance and complete data privacy. Your prompts stay on your machine.
@@ -73,7 +73,7 @@ This will launch the native application window.
 
 Buza Studio follows a strict design system to ensure a premium user experience.
 
-- **Primary Color**: Spotify Green `#1DB954`
+- **Primary Color**: Vibrant Green `#1DB954`
 - **Backgrounds**: Dark Grays `#121212`, `#181818`, `#282828`
 - **Typography**: [Inter](https://fonts.google.com/specimen/Inter) (Google Fonts)
 - **Iconography**: Lucide React & Radix Icons
