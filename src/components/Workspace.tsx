@@ -223,8 +223,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
                         onClick={handleSave}
                         disabled={!hasUnsavedChanges || isSaving}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${hasUnsavedChanges
-                                ? 'bg-[#1DB954] hover:bg-[#1ed760] text-black border border-[#1DB954]'
-                                : 'bg-figma-panel border border-figma-border text-figma-muted'
+                            ? 'bg-[#1DB954] hover:bg-[#1ed760] text-black border border-[#1DB954]'
+                            : 'bg-figma-panel border border-figma-border text-figma-muted'
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                         title={hasUnsavedChanges ? "Save changes" : "No changes to save"}
                     >
