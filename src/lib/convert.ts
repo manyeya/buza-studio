@@ -26,10 +26,30 @@ export const INITIAL_PROMPT: PromptData = {
   ],
   projectVariables: [],
   createdAt: Date.now(),
-  updatedAt: Date.now()
+  updatedAt: Date.now(),
+  folderPath: null
 };
 
-export function convertProjectToPromptData(project: Project): PromptData {
+/**
+ * Options for converting a project to PromptData
+ */
+export interface ConvertOptions {
+  /** The folder path where the project is located (null for root level) */
+  folderPath?: string | null;
+}
+
+/**
+ * Convert a Project to PromptData format
+ * 
+ * @param project - The project to convert
+ * @param options - Optional conversion options including folder path
+ * @returns PromptData representation of the project
+ * 
+ * _Requirements: 2.3, 2.4, 6.2_
+ */
+export function convertProjectToPromptData(project: Project, options?: ConvertOptions): PromptData {
+  const folderPath = options?.folderPath ?? null;
+  
   const variants: PromptVariant[] = project.variants.map((variant, index) => {
     let variables: Variable[] = [];
     if (Array.isArray(variant.metadata.variables)) {
@@ -60,14 +80,18 @@ export function convertProjectToPromptData(project: Project): PromptData {
     };
   });
 
+  // Generate a unique ID that includes folder path for uniqueness across folders
+  const uniqueId = folderPath ? `${folderPath}/${project.name}` : project.name;
+
   return {
-    id: project.name,
+    id: uniqueId,
     name: project.name,
     description: project.description || '',
     activeVariantId: variants[0]?.id || '',
     variants,
     projectVariables: project.variables || [],
     createdAt: project.createdAt || Date.now(),
-    updatedAt: project.updatedAt || Date.now()
+    updatedAt: project.updatedAt || Date.now(),
+    folderPath
   };
 }

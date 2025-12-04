@@ -11,3 +11,6 @@ export const activeVariantIdAtom = atom<string | null>(null);
 
 // Atom to track detected variant variables from content
 export const detectedVariantVariablesAtom = atom<Set<string>>(new Set<string>());
+
+// Re-export folder atoms
+export * from './folder-atoms';

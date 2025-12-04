@@ -42,6 +42,8 @@ export interface PromptData {
   projectVariables: Variable[];
   createdAt: number;
   updatedAt: number;
+  /** Relative folder path where the project is located (null for root level) */
+  folderPath?: string | null;
 }
 
 export interface Template {

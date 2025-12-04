@@ -34,3 +34,16 @@ export {
   useOptimizePrompt,
   useGeneratePromptStructure
 } from './usePromptExecution';
+
+// Folder hooks
+export {
+  useFolders,
+  useFolderTree,
+  useCreateFolder,
+  useRenameFolder,
+  useDeleteFolder,
+  useMoveProject,
+  useMoveFolder,
+  useLoadFolderContents,
+  FOLDER_TREE_QUERY_KEY
+} from './useFolders';
