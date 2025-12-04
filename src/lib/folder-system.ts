@@ -270,6 +270,7 @@ export async function buildFolder(
 
 /**
  * Build the complete folder tree from the filesystem
+ * Recursively loads all nested folders
  * 
  * @param basePath - Base path for projects (default: 'buza-projects')
  * @returns FolderTree with all root items and loaded folders
@@ -280,13 +281,21 @@ export async function buildFolderTree(
     const rootItems = await readFolderContents('', basePath);
     const folders = new Map<string, Folder>();
     
-    // Load folder details for each folder in root
-    for (const item of rootItems) {
-        if (item.type === 'folder') {
-            const folder = await buildFolder(item.path, basePath);
-            folders.set(item.path, folder);
+    // Recursively load all folders
+    async function loadFoldersRecursively(items: FolderItem[]): Promise<void> {
+        for (const item of items) {
+            if (item.type === 'folder') {
+                const folder = await buildFolder(item.path, basePath);
+                folders.set(item.path, folder);
+                // Recursively load nested folders
+                if (folder.children.length > 0) {
+                    await loadFoldersRecursively(folder.children);
+                }
+            }
         }
     }
+    
+    await loadFoldersRecursively(rootItems);
     
     return {
         rootItems,

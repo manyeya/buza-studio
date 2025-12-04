@@ -521,21 +521,37 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
 // Root Drop Zone Component
 // ============================================================================
 
-const RootDropZone: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface RootDropZoneProps {
+    children: React.ReactNode;
+    isDragging: boolean;
+}
+
+const RootDropZone: React.FC<RootDropZoneProps> = ({ children, isDragging }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: 'root-drop-zone',
         data: { path: null, type: 'root' },
     });
 
     return (
-        <div
-            ref={setNodeRef}
-            className={cn(
-                'min-h-[100px] transition-colors',
-                isOver && 'bg-figma-accent/10'
+        <div className="flex flex-col">
+            <div className="min-h-[50px]">
+                {children}
+            </div>
+            {/* Visible root drop target at bottom - only shows when dragging */}
+            {isDragging && (
+                <div
+                    ref={setNodeRef}
+                    className={cn(
+                        'mx-2 mt-1 px-3 py-2 rounded border-2 border-dashed transition-colors flex items-center gap-2',
+                        isOver 
+                            ? 'border-figma-accent bg-figma-accent/20 text-figma-accent' 
+                            : 'border-figma-border text-figma-muted'
+                    )}
+                >
+                    <FolderIcon className="w-3.5 h-3.5" />
+                    <span className="text-xs">Drop here to move to root</span>
+                </div>
             )}
-        >
-            {children}
         </div>
     );
 };
@@ -696,10 +712,12 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
         onItemMove(dragData.path, dragData.type, targetPath);
     }, [onItemMove]);
 
+    const isDragging = activeItem !== null;
+
     if (items.length === 0) {
         return (
             <DndContext sensors={sensors}>
-                <RootDropZone>
+                <RootDropZone isDragging={isDragging}>
                     <div className="px-4 py-6 text-xs text-figma-muted text-center italic">
                         No projects yet. Create your first project!
                     </div>
@@ -714,7 +732,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <RootDropZone>
+            <RootDropZone isDragging={isDragging}>
                 <TreeRenderer
                     items={items}
                     level={0}
