@@ -2,13 +2,25 @@
  * FolderTree Component
  * 
  * Renders a hierarchical folder tree with folders and projects.
- * Supports expand/collapse, item selection, drag-and-drop, and context menus.
+ * Supports expand/collapse, item selection, drag-and-drop (using dnd-kit), and context menus.
  * 
  * _Requirements: 3.1, 3.4, 5.3, 2.1, 5.1, 2.2, 4.1, 4.4_
  */
 
 import React, { useState, useCallback } from 'react';
 import { useAtom, useSetAtom } from 'jotai';
+import {
+    DndContext,
+    DragOverlay,
+    useDraggable,
+    useDroppable,
+    DragStartEvent,
+    DragEndEvent,
+    DragOverEvent,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { FileTextIcon, ChevronDownIcon, TrashIcon } from './Icons';
 import { Button } from './ui/button';
@@ -28,8 +40,8 @@ import {
     DialogTitle,
 } from './ui/dialog';
 import { DotsVerticalIcon } from '@radix-ui/react-icons';
-import { PencilIcon, FolderIcon, FolderOpenIcon, MoveIcon } from 'lucide-react';
-import type { FolderItem, Folder, FolderTree as FolderTreeType } from '@/lib/folder-system';
+import { PencilIcon, FolderIcon, FolderOpenIcon, MoveIcon, GripVerticalIcon } from 'lucide-react';
+import type { FolderItem } from '@/lib/folder-system';
 import {
     expandedFoldersAtom,
     selectedItemIdAtom,
@@ -42,42 +54,331 @@ import {
 // ============================================================================
 
 export interface FolderTreeProps {
-    /** Items to render at this level */
     items: FolderItem[];
-    /** Callback when a project is selected */
     onProjectSelect?: (projectPath: string) => void;
-    /** Callback when a folder is created */
-    onFolderCreate?: (parentPath: string | null) => void;
-    /** Callback when a folder is renamed */
     onFolderRename?: (folderPath: string, newName: string) => void;
-    /** Callback when a folder is deleted */
     onFolderDelete?: (folderPath: string) => void;
-    /** Callback when an item is moved */
     onItemMove?: (sourcePath: string, sourceType: 'folder' | 'project', targetFolderPath: string | null) => void;
-    /** Callback when a project is deleted */
     onProjectDelete?: (projectPath: string) => void;
-    /** Currently active project ID for highlighting */
     activeProjectId?: string | null;
-    /** Current indentation level */
-    level?: number;
 }
 
-interface FolderTreeItemProps {
+interface DragData {
+    path: string;
+    type: 'folder' | 'project';
+    name: string;
+}
+
+// ============================================================================
+// Draggable Item Component
+// ============================================================================
+
+interface DraggableItemProps {
     item: FolderItem;
     level: number;
     isExpanded: boolean;
-    isSelected: boolean;
     activeProjectId?: string | null;
     onToggle: () => void;
-    onSelect: () => void;
     onProjectSelect?: (projectPath: string) => void;
-    onFolderCreate?: (parentPath: string | null) => void;
     onFolderRename?: (folderPath: string, newName: string) => void;
     onFolderDelete?: (folderPath: string) => void;
     onItemMove?: (sourcePath: string, sourceType: 'folder' | 'project', targetFolderPath: string | null) => void;
     onProjectDelete?: (projectPath: string) => void;
     children?: React.ReactNode;
+    isDragOverlay?: boolean;
 }
+
+const DraggableItem: React.FC<DraggableItemProps> = ({
+    item,
+    level,
+    isExpanded,
+    activeProjectId,
+    onToggle,
+    onProjectSelect,
+    onFolderRename,
+    onFolderDelete,
+    onItemMove,
+    onProjectDelete,
+    children,
+    isDragOverlay = false,
+}) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState(item.name);
+    const [showMoveModal, setShowMoveModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const isFolder = item.type === 'folder';
+    const isActiveProject = !isFolder && activeProjectId === item.path;
+    const indentPx = level * 16;
+
+    // Draggable hook
+    const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+        id: item.path,
+        data: { path: item.path, type: item.type, name: item.name } as DragData,
+    });
+
+    // Droppable hook (only folders can be drop targets)
+    const { setNodeRef: setDropRef, isOver } = useDroppable({
+        id: `drop-${item.path}`,
+        data: { path: item.path, type: item.type },
+        disabled: !isFolder,
+    });
+
+    // Combine refs
+    const setNodeRef = (node: HTMLElement | null) => {
+        setDragRef(node);
+        if (isFolder) {
+            setDropRef(node);
+        }
+    };
+
+    const handleStartRename = () => {
+        setEditName(item.name);
+        setIsEditing(true);
+    };
+
+    const handleSaveRename = () => {
+        if (editName.trim() && editName !== item.name && onFolderRename) {
+            onFolderRename(item.path, editName.trim());
+        }
+        setIsEditing(false);
+    };
+
+    const handleCancelRename = () => {
+        setEditName(item.name);
+        setIsEditing(false);
+    };
+
+    const handleDelete = () => {
+        if (isFolder && onFolderDelete) {
+            onFolderDelete(item.path);
+        } else if (!isFolder && onProjectDelete) {
+            onProjectDelete(item.path);
+        }
+        setShowDeleteConfirm(false);
+    };
+
+    const handleMoveToFolder = (targetPath: string | null) => {
+        if (onItemMove) {
+            onItemMove(item.path, item.type, targetPath);
+        }
+    };
+
+    const handleClick = () => {
+        if (isFolder) {
+            onToggle();
+        } else if (onProjectSelect) {
+            onProjectSelect(item.path);
+        }
+    };
+
+    return (
+        <>
+            <div
+                ref={!isDragOverlay ? setNodeRef : undefined}
+                className={cn(
+                    'group flex items-center transition-colors overflow-hidden',
+                    isFolder && isOver && 'bg-figma-accent/20 ring-1 ring-figma-accent ring-inset',
+                    isDragging && !isDragOverlay && 'opacity-30',
+                    isDragOverlay && 'opacity-90 bg-figma-panel shadow-lg rounded',
+                    isActiveProject && !isDragging && 'bg-figma-hover',
+                    !isActiveProject && !isOver && !isDragging && 'hover:bg-figma-bg/50'
+                )}
+            >
+                {/* Drag handle */}
+                <div 
+                    className={cn(
+                        "cursor-grab active:cursor-grabbing pl-1 transition-opacity",
+                        isDragOverlay ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    )}
+                    style={{ marginLeft: `${indentPx}px` }}
+                    {...listeners}
+                    {...attributes}
+                >
+                    <GripVerticalIcon className="w-3 h-3 text-figma-muted" />
+                </div>
+                <div
+                    className="flex-1 flex items-center px-1 py-1 cursor-pointer min-w-0 overflow-hidden"
+                    onClick={handleClick}
+                    onDoubleClick={isFolder ? handleStartRename : undefined}
+                >
+                    {isFolder && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggle();
+                            }}
+                            className="p-0.5 mr-1 hover:bg-figma-hover rounded"
+                        >
+                            <ChevronDownIcon
+                                className={cn(
+                                    'w-3 h-3 text-figma-muted transition-transform',
+                                    !isExpanded && '-rotate-90'
+                                )}
+                            />
+                        </button>
+                    )}
+                    
+                    {!isFolder && <div className="w-5" />}
+
+                    {isFolder ? (
+                        isExpanded ? (
+                            <FolderOpenIcon className="w-3.5 h-3.5 mr-2 text-figma-muted flex-shrink-0" />
+                        ) : (
+                            <FolderIcon className="w-3.5 h-3.5 mr-2 text-figma-muted flex-shrink-0" />
+                        )
+                    ) : (
+                        <FileTextIcon
+                            className={cn(
+                                'w-3.5 h-3.5 mr-2 flex-shrink-0',
+                                isActiveProject ? 'text-figma-accent' : 'text-figma-muted'
+                            )}
+                        />
+                    )}
+
+                    {isEditing ? (
+                        <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onBlur={handleSaveRename}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveRename();
+                                if (e.key === 'Escape') handleCancelRename();
+                            }}
+                            className="flex-1 min-w-0 bg-figma-bg border border-figma-border rounded px-1.5 py-0.5 text-xs text-white focus:border-figma-accent outline-none"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    ) : (
+                        <span
+                            className={cn(
+                                'text-xs truncate min-w-0 flex-1',
+                                isActiveProject ? 'text-figma-accent font-medium' : 'text-white'
+                            )}
+                            title={item.name}
+                        >
+                            {item.name}
+                        </span>
+                    )}
+                </div>
+
+                {!isDragOverlay && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <DotsVerticalIcon className="w-3 h-3 text-figma-muted hover:text-white" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="min-w-[140px] bg-figma-panel border border-figma-border rounded shadow-lg"
+                                align="end"
+                            >
+                                {isFolder && (
+                                    <>
+                                        <DropdownMenuItem
+                                            onClick={handleStartRename}
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                        >
+                                            <PencilIcon className="w-3 h-3" />
+                                            Rename
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() => setShowMoveModal(true)}
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                        >
+                                            <MoveIcon className="w-3 h-3" />
+                                            Move to Folder
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator className="bg-figma-border" />
+                                        <DropdownMenuItem
+                                            onClick={() => setShowDeleteConfirm(true)}
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                        >
+                                            <TrashIcon className="w-3 h-3" />
+                                            Delete
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                                {!isFolder && (
+                                    <>
+                                        <DropdownMenuItem
+                                            onClick={() => setShowMoveModal(true)}
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                        >
+                                            <MoveIcon className="w-3 h-3" />
+                                            Move to Folder
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator className="bg-figma-border" />
+                                        <DropdownMenuItem
+                                            onClick={() => setShowDeleteConfirm(true)}
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                        >
+                                            <TrashIcon className="w-3 h-3" />
+                                            Delete
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                )}
+            </div>
+
+            {isFolder && isExpanded && children}
+
+            <FolderPickerModal
+                isOpen={showMoveModal}
+                onClose={() => setShowMoveModal(false)}
+                onSelect={handleMoveToFolder}
+                excludePath={isFolder ? item.path : undefined}
+                title={`Move "${item.name}" to...`}
+            />
+
+            <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <DialogContent className="bg-figma-panel border-figma-border max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="text-white">
+                            Delete {isFolder ? 'Folder' : 'Project'}
+                        </DialogTitle>
+                        <DialogDescription className="text-figma-muted">
+                            {isFolder
+                                ? `Are you sure you want to delete "${item.name}"? Any contents will be moved to the parent folder.`
+                                : `Are you sure you want to delete "${item.name}"? This action cannot be undone.`
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowDeleteConfirm(false)}
+                            className="text-figma-muted hover:text-white"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleDelete}
+                            className="bg-red-600 text-white hover:bg-red-700"
+                        >
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
+    );
+};
+
+
+// ============================================================================
+// Folder Picker Modal Component
+// ============================================================================
 
 interface FolderPickerModalProps {
     isOpen: boolean;
@@ -86,10 +387,6 @@ interface FolderPickerModalProps {
     excludePath?: string;
     title?: string;
 }
-
-// ============================================================================
-// Folder Picker Modal Component
-// ============================================================================
 
 export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
     isOpen,
@@ -122,7 +419,6 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
     const renderFolderItem = (item: FolderItem, level: number = 0): React.ReactNode => {
         if (item.type !== 'folder') return null;
         
-        // Exclude the item being moved and its descendants
         if (excludePath && (item.path === excludePath || item.path.startsWith(excludePath + '/'))) {
             return null;
         }
@@ -180,7 +476,6 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
                 </DialogHeader>
                 
                 <div className="max-h-64 overflow-y-auto border border-figma-border rounded bg-figma-bg">
-                    {/* Root level option */}
                     <div
                         className={cn(
                             'flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded transition-colors',
@@ -223,317 +518,98 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
 };
 
 // ============================================================================
-// FolderTreeItem Component
+// Root Drop Zone Component
 // ============================================================================
 
-const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
-    item,
+const RootDropZone: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { setNodeRef, isOver } = useDroppable({
+        id: 'root-drop-zone',
+        data: { path: null, type: 'root' },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={cn(
+                'min-h-[100px] transition-colors',
+                isOver && 'bg-figma-accent/10'
+            )}
+        >
+            {children}
+        </div>
+    );
+};
+
+// ============================================================================
+// Recursive Tree Renderer
+// ============================================================================
+
+interface TreeRendererProps {
+    items: FolderItem[];
+    level: number;
+    activeProjectId?: string | null;
+    onProjectSelect?: (projectPath: string) => void;
+    onFolderRename?: (folderPath: string, newName: string) => void;
+    onFolderDelete?: (folderPath: string) => void;
+    onItemMove?: (sourcePath: string, sourceType: 'folder' | 'project', targetFolderPath: string | null) => void;
+    onProjectDelete?: (projectPath: string) => void;
+}
+
+const TreeRenderer: React.FC<TreeRendererProps> = ({
+    items,
     level,
-    isExpanded,
-    isSelected,
     activeProjectId,
-    onToggle,
-    onSelect,
     onProjectSelect,
-    onFolderCreate,
     onFolderRename,
     onFolderDelete,
     onItemMove,
     onProjectDelete,
-    children,
 }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editName, setEditName] = useState(item.name);
-    const [isDragOver, setIsDragOver] = useState(false);
-    const [showMoveModal, setShowMoveModal] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [expandedFolders] = useAtom(expandedFoldersAtom);
+    const [, setSelectedItemId] = useAtom(selectedItemIdAtom);
+    const toggleFolderExpansion = useSetAtom(toggleFolderExpansionAtom);
+    const [folderTree] = useAtom(folderTreeAtom);
 
-    const isFolder = item.type === 'folder';
-    // activeProjectId is the full path (e.g., "MyFolder/MyProject"), item.path is also the full path
-    const isActiveProject = !isFolder && activeProjectId === item.path;
-    const indentPx = level * 16;
-
-    // Handle inline rename
-    const handleStartRename = () => {
-        setEditName(item.name);
-        setIsEditing(true);
-    };
-
-    const handleSaveRename = () => {
-        if (editName.trim() && editName !== item.name && onFolderRename) {
-            onFolderRename(item.path, editName.trim());
-        }
-        setIsEditing(false);
-    };
-
-    const handleCancelRename = () => {
-        setEditName(item.name);
-        setIsEditing(false);
-    };
-
-    // Handle delete
-    const handleDelete = () => {
-        if (isFolder && onFolderDelete) {
-            onFolderDelete(item.path);
-        } else if (!isFolder && onProjectDelete) {
-            onProjectDelete(item.path);
-        }
-        setShowDeleteConfirm(false);
-    };
-
-    // Drag and drop handlers
-    const handleDragStart = (e: React.DragEvent) => {
-        e.dataTransfer.setData('application/json', JSON.stringify({
-            path: item.path,
-            type: item.type,
-            name: item.name,
-        }));
-        e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        if (!isFolder) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        setIsDragOver(true);
-    };
-
-    const handleDragLeave = () => {
-        setIsDragOver(false);
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragOver(false);
-        
-        if (!isFolder || !onItemMove) return;
-
-        try {
-            const data = JSON.parse(e.dataTransfer.getData('application/json'));
-            // Don't allow dropping on itself or its descendants
-            if (data.path === item.path || item.path.startsWith(data.path + '/')) {
-                return;
-            }
-            onItemMove(data.path, data.type, item.path);
-        } catch {
-            // Invalid drag data
-        }
-    };
-
-    // Handle move to folder via modal
-    const handleMoveToFolder = (targetPath: string | null) => {
-        if (onItemMove) {
-            onItemMove(item.path, item.type, targetPath);
-        }
-    };
-
-    const handleClick = () => {
-        if (isFolder) {
-            onToggle();
-        } else {
-            onSelect();
-            if (onProjectSelect) {
-                onProjectSelect(item.path);
-            }
-        }
-    };
+    const handleToggle = useCallback((folderPath: string) => {
+        toggleFolderExpansion(folderPath);
+    }, [toggleFolderExpansion]);
 
     return (
         <>
-            <div
-                className={cn(
-                    'group flex items-center transition-colors overflow-hidden',
-                    isFolder && isDragOver && 'bg-figma-accent/20',
-                    isActiveProject && 'bg-figma-hover',
-                    !isActiveProject && 'hover:bg-figma-bg/50'
-                )}
-                draggable
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-            >
-                <div
-                    className="flex-1 flex items-center px-3 py-1 cursor-pointer min-w-0 overflow-hidden"
-                    style={{ paddingLeft: `${indentPx + 12}px` }}
-                    onClick={handleClick}
-                    onDoubleClick={isFolder ? handleStartRename : undefined}
-                >
-                    {/* Expand/collapse chevron for folders */}
-                    {isFolder && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onToggle();
-                            }}
-                            className="p-0.5 mr-1 hover:bg-figma-hover rounded"
-                        >
-                            <ChevronDownIcon
-                                className={cn(
-                                    'w-3 h-3 text-figma-muted transition-transform',
-                                    !isExpanded && '-rotate-90'
-                                )}
+            {items.map((item) => {
+                const isExpanded = item.type === 'folder' && expandedFolders.has(item.path);
+                const folder = item.type === 'folder' ? folderTree.folders.get(item.path) : null;
+                const children = folder?.children ?? [];
+
+                return (
+                    <DraggableItem
+                        key={item.id}
+                        item={item}
+                        level={level}
+                        isExpanded={isExpanded}
+                        activeProjectId={activeProjectId}
+                        onToggle={() => handleToggle(item.path)}
+                        onProjectSelect={onProjectSelect}
+                        onFolderRename={onFolderRename}
+                        onFolderDelete={onFolderDelete}
+                        onItemMove={onItemMove}
+                        onProjectDelete={onProjectDelete}
+                    >
+                        {children.length > 0 && (
+                            <TreeRenderer
+                                items={children}
+                                level={level + 1}
+                                activeProjectId={activeProjectId}
+                                onProjectSelect={onProjectSelect}
+                                onFolderRename={onFolderRename}
+                                onFolderDelete={onFolderDelete}
+                                onItemMove={onItemMove}
+                                onProjectDelete={onProjectDelete}
                             />
-                        </button>
-                    )}
-                    
-                    {/* Spacer for projects to align with folders */}
-                    {!isFolder && <div className="w-5" />}
-
-                    {/* Icon */}
-                    {isFolder ? (
-                        isExpanded ? (
-                            <FolderOpenIcon className="w-3.5 h-3.5 mr-2 text-figma-muted flex-shrink-0" />
-                        ) : (
-                            <FolderIcon className="w-3.5 h-3.5 mr-2 text-figma-muted flex-shrink-0" />
-                        )
-                    ) : (
-                        <FileTextIcon
-                            className={cn(
-                                'w-3.5 h-3.5 mr-2 flex-shrink-0',
-                                isActiveProject ? 'text-figma-accent' : 'text-figma-muted'
-                            )}
-                        />
-                    )}
-
-                    {/* Name (editable for folders) */}
-                    {isEditing ? (
-                        <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            onBlur={handleSaveRename}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveRename();
-                                if (e.key === 'Escape') handleCancelRename();
-                            }}
-                            className="flex-1 min-w-0 bg-figma-bg border border-figma-border rounded px-1.5 py-0.5 text-xs text-white focus:border-figma-accent outline-none"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    ) : (
-                        <span
-                            className={cn(
-                                'text-xs truncate min-w-0 flex-1',
-                                isActiveProject ? 'text-figma-accent font-medium' : 'text-white'
-                            )}
-                            title={item.name}
-                        >
-                            {item.name}
-                        </span>
-                    )}
-                </div>
-
-                {/* Context menu */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity pr-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <DotsVerticalIcon className="w-3 h-3 text-figma-muted hover:text-white" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            className="min-w-[140px] bg-figma-panel border border-figma-border rounded shadow-lg"
-                            align="end"
-                        >
-                            {isFolder && (
-                                <>
-                                    <DropdownMenuItem
-                                        onClick={handleStartRename}
-                                        className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
-                                    >
-                                        <PencilIcon className="w-3 h-3" />
-                                        Rename
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() => setShowMoveModal(true)}
-                                        className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
-                                    >
-                                        <MoveIcon className="w-3 h-3" />
-                                        Move to Folder
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator className="bg-figma-border" />
-                                    <DropdownMenuItem
-                                        onClick={() => setShowDeleteConfirm(true)}
-                                        className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
-                                    >
-                                        <TrashIcon className="w-3 h-3" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </>
-                            )}
-                            {!isFolder && (
-                                <>
-                                    <DropdownMenuItem
-                                        onClick={() => setShowMoveModal(true)}
-                                        className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
-                                    >
-                                        <MoveIcon className="w-3 h-3" />
-                                        Move to Folder
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator className="bg-figma-border" />
-                                    <DropdownMenuItem
-                                        onClick={() => setShowDeleteConfirm(true)}
-                                        className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
-                                    >
-                                        <TrashIcon className="w-3 h-3" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </div>
-
-            {/* Render children (nested items) when expanded */}
-            {isFolder && isExpanded && children}
-
-            {/* Move to folder modal */}
-            <FolderPickerModal
-                isOpen={showMoveModal}
-                onClose={() => setShowMoveModal(false)}
-                onSelect={handleMoveToFolder}
-                excludePath={isFolder ? item.path : undefined}
-                title={`Move "${item.name}" to...`}
-            />
-
-            {/* Delete confirmation dialog */}
-            <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                <DialogContent className="bg-figma-panel border-figma-border max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="text-white">
-                            Delete {isFolder ? 'Folder' : 'Project'}
-                        </DialogTitle>
-                        <DialogDescription className="text-figma-muted">
-                            {isFolder
-                                ? `Are you sure you want to delete "${item.name}"? Any contents will be moved to the parent folder.`
-                                : `Are you sure you want to delete "${item.name}"? This action cannot be undone.`
-                            }
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            variant="ghost"
-                            onClick={() => setShowDeleteConfirm(false)}
-                            className="text-figma-muted hover:text-white"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleDelete}
-                            className="bg-red-600 text-white hover:bg-red-700"
-                        >
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                        )}
+                    </DraggableItem>
+                );
+            })}
         </>
     );
 };
@@ -545,104 +621,125 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
 export const FolderTree: React.FC<FolderTreeProps> = ({
     items,
     onProjectSelect,
-    onFolderCreate,
     onFolderRename,
     onFolderDelete,
     onItemMove,
     onProjectDelete,
     activeProjectId,
-    level = 0,
 }) => {
-    const [expandedFolders] = useAtom(expandedFoldersAtom);
-    const [selectedItemId, setSelectedItemId] = useAtom(selectedItemIdAtom);
-    const toggleFolderExpansion = useSetAtom(toggleFolderExpansionAtom);
+    const [activeItem, setActiveItem] = useState<FolderItem | null>(null);
     const [folderTree] = useAtom(folderTreeAtom);
 
-    const handleToggle = useCallback((folderPath: string) => {
-        toggleFolderExpansion(folderPath);
-    }, [toggleFolderExpansion]);
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
 
-    const handleSelect = useCallback((itemId: string) => {
-        setSelectedItemId(itemId);
-    }, [setSelectedItemId]);
+    const handleDragStart = useCallback((event: DragStartEvent) => {
+        const { active } = event;
+        const data = active.data.current as DragData;
+        
+        // Find the item being dragged
+        const findItem = (searchItems: FolderItem[], path: string): FolderItem | null => {
+            for (const item of searchItems) {
+                if (item.path === path) return item;
+                if (item.type === 'folder') {
+                    const folder = folderTree.folders.get(item.path);
+                    if (folder?.children) {
+                        const found = findItem(folder.children, path);
+                        if (found) return found;
+                    }
+                }
+            }
+            return null;
+        };
 
-    // Handle drop on root level (empty space)
-    const handleRootDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        if (!onItemMove) return;
+        const item = findItem(items, data.path);
+        setActiveItem(item);
+    }, [items, folderTree]);
 
-        try {
-            const data = JSON.parse(e.dataTransfer.getData('application/json'));
-            // Move to root level
-            onItemMove(data.path, data.type, null);
-        } catch {
-            // Invalid drag data
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveItem(null);
+
+        if (!over || !onItemMove) return;
+
+        const dragData = active.data.current as DragData;
+        const dropData = over.data.current as { path: string | null; type: string };
+
+        // Don't drop on itself
+        if (dragData.path === dropData.path) return;
+
+        // Don't drop folder into its own descendant
+        if (dropData.path && dropData.path.startsWith(dragData.path + '/')) return;
+
+        // Determine target folder path
+        let targetPath: string | null = null;
+        if (over.id === 'root-drop-zone') {
+            targetPath = null;
+        } else if (dropData.type === 'folder') {
+            targetPath = dropData.path;
+        } else {
+            return; // Can't drop on a project
         }
-    };
 
-    const handleRootDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    };
+        // Don't move if already in target location
+        const currentParent = dragData.path.includes('/') 
+            ? dragData.path.substring(0, dragData.path.lastIndexOf('/'))
+            : null;
+        if (currentParent === targetPath) return;
 
-    if (items.length === 0 && level === 0) {
+        console.log('Moving:', dragData.path, 'to:', targetPath);
+        onItemMove(dragData.path, dragData.type, targetPath);
+    }, [onItemMove]);
+
+    if (items.length === 0) {
         return (
-            <div
-                className="px-4 py-6 text-xs text-figma-muted text-center italic"
-                onDrop={handleRootDrop}
-                onDragOver={handleRootDragOver}
-            >
-                No projects yet. Create your first project!
-            </div>
+            <DndContext sensors={sensors}>
+                <RootDropZone>
+                    <div className="px-4 py-6 text-xs text-figma-muted text-center italic">
+                        No projects yet. Create your first project!
+                    </div>
+                </RootDropZone>
+            </DndContext>
         );
     }
 
     return (
-        <div
-            className={cn(level === 0 && 'min-h-[100px]')}
-            onDrop={level === 0 ? handleRootDrop : undefined}
-            onDragOver={level === 0 ? handleRootDragOver : undefined}
+        <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
         >
-            {items.map((item) => {
-                const isExpanded = item.type === 'folder' && expandedFolders.has(item.path);
-                const folder = item.type === 'folder' ? folderTree.folders.get(item.path) : null;
-                const children = folder?.children ?? [];
+            <RootDropZone>
+                <TreeRenderer
+                    items={items}
+                    level={0}
+                    activeProjectId={activeProjectId}
+                    onProjectSelect={onProjectSelect}
+                    onFolderRename={onFolderRename}
+                    onFolderDelete={onFolderDelete}
+                    onItemMove={onItemMove}
+                    onProjectDelete={onProjectDelete}
+                />
+            </RootDropZone>
 
-                return (
-                    <FolderTreeItem
-                        key={item.id}
-                        item={item}
-                        level={level}
-                        isExpanded={isExpanded}
-                        isSelected={selectedItemId === item.id}
+            <DragOverlay>
+                {activeItem && (
+                    <DraggableItem
+                        item={activeItem}
+                        level={0}
+                        isExpanded={false}
                         activeProjectId={activeProjectId}
-                        onToggle={() => handleToggle(item.path)}
-                        onSelect={() => handleSelect(item.id)}
-                        onProjectSelect={onProjectSelect}
-                        onFolderCreate={onFolderCreate}
-                        onFolderRename={onFolderRename}
-                        onFolderDelete={onFolderDelete}
-                        onItemMove={onItemMove}
-                        onProjectDelete={onProjectDelete}
-                    >
-                        {/* Recursively render children */}
-                        {children.length > 0 && (
-                            <FolderTree
-                                items={children}
-                                onProjectSelect={onProjectSelect}
-                                onFolderCreate={onFolderCreate}
-                                onFolderRename={onFolderRename}
-                                onFolderDelete={onFolderDelete}
-                                onItemMove={onItemMove}
-                                onProjectDelete={onProjectDelete}
-                                activeProjectId={activeProjectId}
-                                level={level + 1}
-                            />
-                        )}
-                    </FolderTreeItem>
-                );
-            })}
-        </div>
+                        onToggle={() => {}}
+                        isDragOverlay
+                    />
+                )}
+            </DragOverlay>
+        </DndContext>
     );
 };
 

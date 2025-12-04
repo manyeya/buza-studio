@@ -9,6 +9,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useAtom, useSetAtom } from 'jotai';
+import { useQueryClient } from '@tanstack/react-query';
 import { PromptData } from '../../types';
 import { FileTextIcon, PlusIcon, GridIcon, SearchIcon, SortAscIcon, SortDescIcon, HistoryIcon, TrashIcon } from './Icons';
 import { Button } from './ui/button';
@@ -37,6 +38,7 @@ import {
     type FolderItem,
     type SearchResult,
 } from '@/lib/folder-system';
+import { PROJECTS_QUERY_KEY } from '@/hooks/useProjects';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -71,6 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onDeleteProject,
     onOpenSettings
 }) => {
+    const queryClient = useQueryClient();
     const [copiedVarId, setCopiedVarId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -177,19 +180,25 @@ const Sidebar: React.FC<SidebarProps> = ({
         sourceType: 'folder' | 'project',
         targetFolderPath: string | null
     ) => {
+        console.log('handleItemMove called:', { sourcePath, sourceType, targetFolderPath });
         try {
             if (sourceType === 'project') {
+                console.log('Moving project...');
                 await moveProject(sourcePath, targetFolderPath);
             } else {
+                console.log('Moving folder...');
                 await moveFolder(sourcePath, targetFolderPath);
             }
+            console.log('Move successful, refreshing...');
             await loadFolderTreeData();
+            // Invalidate projects query to refresh the project list with new paths
+            queryClient.invalidateQueries({ queryKey: PROJECTS_QUERY_KEY });
             toast.success(`Moved ${sourceType} successfully`);
         } catch (error) {
             console.error('Failed to move item:', error);
             toast.error(`Failed to move ${sourceType}`);
         }
-    }, []);
+    }, [queryClient]);
 
 
     const handleProjectSelect = useCallback((projectPath: string) => {
@@ -372,7 +381,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <FolderTree
                             items={folderTree.rootItems}
                             onProjectSelect={handleProjectSelect}
-                            onFolderCreate={handleCreateFolder}
                             onFolderRename={handleRenameFolder}
                             onFolderDelete={handleDeleteFolder}
                             onItemMove={handleItemMove}
