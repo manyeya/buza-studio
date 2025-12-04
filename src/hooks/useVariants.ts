@@ -1,3 +1,12 @@
+/**
+ * React Query hooks for variant operations with folder awareness
+ * 
+ * Provides mutations for variant CRUD operations that support
+ * projects in hierarchical folder organization.
+ * 
+ * _Requirements: 2.3, 2.4, 6.2_
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
 import { projectSystem } from '../lib/project-system';
@@ -7,6 +16,20 @@ import { PROJECTS_QUERY_KEY } from './useProjects';
 import type { PromptData, PromptVariant, PromptVersion } from '../../types';
 import { toast } from 'sonner';
 
+/**
+ * Get the full project path from name and folder path
+ */
+function getProjectPath(projectName: string, folderPath: string | null): string {
+  return folderPath ? `${folderPath}/${projectName}` : projectName;
+}
+
+/**
+ * Hook to update a variant
+ * 
+ * Automatically looks up the folder path from existing project data.
+ * 
+ * _Requirements: 2.4_
+ */
 export function useUpdateVariant() {
   const queryClient = useQueryClient();
   const [activePromptId] = useAtom(activePromptIdAtom);
@@ -16,12 +39,14 @@ export function useUpdateVariant() {
       projectName,
       variantName,
       variantId,
-      updates
+      updates,
+      folderPath
     }: {
       projectName: string;
       variantName: string;
       variantId: string;
       updates: Partial<PromptVariant>;
+      folderPath?: string | null;
     }) => {
       const prompts = queryClient.getQueryData<PromptData[]>(PROJECTS_QUERY_KEY);
       const activePrompt = prompts?.find(p => p.id === activePromptId);
@@ -29,12 +54,19 @@ export function useUpdateVariant() {
 
       if (!currentVariant) throw new Error('Variant not found');
 
+      // If folderPath not provided, look it up from existing project data
+      let currentFolderPath = folderPath;
+      if (currentFolderPath === undefined) {
+        currentFolderPath = activePrompt?.folderPath ?? null;
+      }
+      
+      const projectPath = getProjectPath(projectName, currentFolderPath);
       const updatedVariant = { ...currentVariant, ...updates };
 
       // If renaming variant, delete old and create new
       if (updates.name && updates.name !== variantName) {
         await projectSystem.createVariant(
-          projectName,
+          projectPath,
           updates.name,
           updatedVariant.content,
           {
@@ -46,10 +78,10 @@ export function useUpdateVariant() {
             variables: updatedVariant.variables
           }
         );
-        await projectSystem.deleteVariant(projectName, variantName);
+        await projectSystem.deleteVariant(projectPath, variantName);
       } else {
         await projectSystem.updateVariant(
-          projectName,
+          projectPath,
           variantName,
           updatedVariant.content,
           {
@@ -85,9 +117,16 @@ export function useUpdateVariant() {
       toast.error('Failed to update variant');
     }
   });
-
 }
 
+
+/**
+ * Hook to add a new variant to a project
+ * 
+ * Automatically looks up the folder path from existing project data.
+ * 
+ * _Requirements: 2.4_
+ */
 export function useAddVariant() {
   const queryClient = useQueryClient();
   const [activePromptId] = useAtom(activePromptIdAtom);
@@ -95,15 +134,26 @@ export function useAddVariant() {
   return useMutation({
     mutationFn: async ({
       projectName,
-      baseVariant
+      baseVariant,
+      folderPath
     }: {
       projectName: string;
       baseVariant?: PromptVariant;
+      folderPath?: string | null;
     }) => {
+      // If folderPath not provided, look it up from existing project data
+      let currentFolderPath = folderPath;
+      if (currentFolderPath === undefined) {
+        const existingProjects = queryClient.getQueryData<PromptData[]>(PROJECTS_QUERY_KEY);
+        const existingProject = existingProjects?.find(p => p.name === projectName);
+        currentFolderPath = existingProject?.folderPath ?? null;
+      }
+      
+      const projectPath = getProjectPath(projectName, currentFolderPath);
       const newName = `${baseVariant?.name || 'Main'} (Copy)`;
 
       await projectSystem.createVariant(
-        projectName,
+        projectPath,
         newName,
         baseVariant?.content || '',
         {
@@ -114,8 +164,8 @@ export function useAddVariant() {
         }
       );
 
-      const project = await projectSystem.getProject(projectName);
-      return convertProjectToPromptData(project);
+      const project = await projectSystem.getProject(projectPath);
+      return convertProjectToPromptData(project, { folderPath: currentFolderPath });
     },
     onSuccess: (updatedPrompt) => {
       queryClient.setQueryData<PromptData[]>(PROJECTS_QUERY_KEY, (old) =>
@@ -129,6 +179,13 @@ export function useAddVariant() {
   });
 }
 
+/**
+ * Hook to delete a variant from a project
+ * 
+ * Automatically looks up the folder path from existing project data.
+ * 
+ * _Requirements: 2.4_
+ */
 export function useDeleteVariant() {
   const queryClient = useQueryClient();
   const [activePromptId] = useAtom(activePromptIdAtom);
@@ -136,20 +193,31 @@ export function useDeleteVariant() {
   return useMutation({
     mutationFn: async ({
       projectName,
-      variantName
+      variantName,
+      folderPath
     }: {
       projectName: string;
       variantName: string;
+      folderPath?: string | null;
     }) => {
-      await projectSystem.deleteVariant(projectName, variantName);
-      const project = await projectSystem.getProject(projectName);
-      return convertProjectToPromptData(project);
+      // If folderPath not provided, look it up from existing project data
+      let currentFolderPath = folderPath;
+      if (currentFolderPath === undefined) {
+        const existingProjects = queryClient.getQueryData<PromptData[]>(PROJECTS_QUERY_KEY);
+        const existingProject = existingProjects?.find(p => p.name === projectName);
+        currentFolderPath = existingProject?.folderPath ?? null;
+      }
+      
+      const projectPath = getProjectPath(projectName, currentFolderPath);
+      await projectSystem.deleteVariant(projectPath, variantName);
+      const project = await projectSystem.getProject(projectPath);
+      return convertProjectToPromptData(project, { folderPath: currentFolderPath });
     },
     onSuccess: (updatedPrompt) => {
       queryClient.setQueryData<PromptData[]>(PROJECTS_QUERY_KEY, (old) =>
         old?.map(p => p.id === activePromptId ? updatedPrompt : p) ?? []
       );
-      toast.success(`Variant "${updatedPrompt.variants[updatedPrompt.variants.length - 1].name}" deleted`);
+      toast.success(`Variant deleted`);
     },
     onError: () => {
       toast.error('Failed to delete variant');
@@ -157,6 +225,11 @@ export function useDeleteVariant() {
   });
 }
 
+/**
+ * Hook to save a version of a variant
+ * 
+ * _Requirements: 2.4_
+ */
 export function useSaveVersion() {
   const updateVariant = useUpdateVariant();
 
@@ -164,11 +237,13 @@ export function useSaveVersion() {
     mutationFn: async ({
       projectName,
       variant,
-      versionName
+      versionName,
+      folderPath
     }: {
       projectName: string;
       variant: PromptVariant;
       versionName?: string;
+      folderPath?: string | null;
     }) => {
       const newVersion: PromptVersion = {
         id: crypto.randomUUID(),
@@ -185,7 +260,8 @@ export function useSaveVersion() {
         variantId: variant.id,
         updates: {
           versions: [newVersion, ...variant.versions]
-        }
+        },
+        folderPath
       }, {
         onSuccess: () => {
           toast.success(`Version "${newVersion.name}" saved`);
@@ -199,6 +275,11 @@ export function useSaveVersion() {
   });
 }
 
+/**
+ * Hook to restore a version of a variant
+ * 
+ * _Requirements: 2.4_
+ */
 export function useRestoreVersion() {
   const updateVariant = useUpdateVariant();
 
@@ -206,11 +287,13 @@ export function useRestoreVersion() {
     mutationFn: async ({
       projectName,
       variant,
-      version
+      version,
+      folderPath
     }: {
       projectName: string;
       variant: PromptVariant;
       version: PromptVersion;
+      folderPath?: string | null;
     }) => {
       await updateVariant.mutateAsync({
         projectName,
@@ -220,7 +303,8 @@ export function useRestoreVersion() {
           content: version.content,
           config: JSON.parse(JSON.stringify(version.config)),
           variables: JSON.parse(JSON.stringify(version.variables))
-        }
+        },
+        folderPath
       }, {
         onSuccess: () => {
           toast.success(`Version "${version.name}" restored`);

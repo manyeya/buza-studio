@@ -262,14 +262,21 @@ const App: React.FC = () => {
     generateStructure.mutate({ description, variant: activeVariant });
   };
 
-  const handleDeleteProject = (projectName: string) => {
-    const isActiveProject = activePrompt?.name === projectName;
+  const handleDeleteProject = (projectPath: string) => {
+    // projectPath can be a full path like "MyFolder/MyProject" or just "MyProject"
+    const projectName = projectPath.split('/').pop() || projectPath;
+    const folderPath = projectPath.includes('/') 
+      ? projectPath.substring(0, projectPath.lastIndexOf('/'))
+      : null;
+    
+    // Check if this is the active project by comparing the full path (which is the id)
+    const isActiveProject = activePrompt?.id === projectPath;
     const confirmMessage = isActiveProject
       ? `Are you sure you want to delete "${projectName}"? This is your currently active project and cannot be undone.`
       : `Are you sure you want to delete "${projectName}"? This action cannot be undone.`;
 
     if (confirm(confirmMessage)) {
-      deleteProject.mutate(projectName);
+      deleteProject.mutate({ projectName, folderPath });
     }
   };
 

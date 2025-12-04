@@ -384,18 +384,21 @@ export class ProjectSystem {
         await writeTextFile(filePath, content, { baseDir: BaseDirectory.Document });
     }
 
-    async getProject(projectName: string): Promise<Project> {
-        const variantNames = await this.listVariants(projectName);
+    async getProject(projectPath: string): Promise<Project> {
+        const variantNames = await this.listVariants(projectPath);
         const variants = await Promise.all(
-            variantNames.map(name => this.readVariant(projectName, name))
+            variantNames.map(name => this.readVariant(projectPath, name))
         );
-        const variables = await this.getProjectVariables(projectName);
-        const description = await this.getProjectDescription(projectName);
-        const timestamps = await this.getProjectTimestamps(projectName);
+        const variables = await this.getProjectVariables(projectPath);
+        const description = await this.getProjectDescription(projectPath);
+        const timestamps = await this.getProjectTimestamps(projectPath);
+
+        // Extract just the project name from the path (last segment)
+        const projectName = projectPath.split('/').pop() || projectPath;
 
         return {
             name: projectName,
-            path: `${this.basePath}/${projectName}`,
+            path: `${this.basePath}/${projectPath}`,
             variants,
             variables,
             description,
