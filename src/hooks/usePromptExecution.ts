@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
-import * as GeminiService from '../../services/geminiService';
+import * as AiService from '../services/aiService';
 import { activePromptIdAtom } from '../atoms';
 import { PROJECTS_QUERY_KEY } from './useProjects';
 import type { PromptData, PromptVariant } from '../../types';
@@ -18,20 +18,17 @@ export function useRunPrompt() {
       variant: PromptVariant;
       projectVariables: { key: string; value: string }[];
     }) => {
-      // Merge variables: project variables as base, variant variables override
       const vars: Record<string, string> = {};
 
-      // Add project variables first
       projectVariables?.forEach(v => {
         vars[v.key] = v.value;
       });
 
-      // Add/override with variant variables
       variant.variables.forEach(v => {
         vars[v.key] = v.value;
       });
 
-      const output = await GeminiService.runPrompt(variant.content, variant.config, vars);
+      const output = await AiService.runPrompt(variant.content, variant.config, vars);
       return { output, variantId: variant.id };
     },
     onSuccess: ({ output, variantId }) => {
@@ -50,7 +47,8 @@ export function useRunPrompt() {
         ) ?? []
       );
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Run prompt failed:", error);
       toast.error('Failed to run prompt');
     }
   });
@@ -66,7 +64,7 @@ export function useOptimizePrompt() {
     }: {
       variant: PromptVariant;
     }) => {
-      const optimizedContent = await GeminiService.optimizePrompt(variant.content);
+      const optimizedContent = await AiService.optimizePrompt(variant.content);
       return { optimizedContent, variantId: variant.id };
     },
     onSuccess: ({ optimizedContent, variantId }) => {
@@ -87,7 +85,8 @@ export function useOptimizePrompt() {
         );
       }
     },
-    onError: () => {
+    onError: (error) => {
+        console.error("Optimize prompt failed:", error);
       toast.error('Failed to optimize prompt');
     }
   });
@@ -105,7 +104,7 @@ export function useGeneratePromptStructure() {
       description: string;
       variant: PromptVariant;
     }) => {
-      const result = await GeminiService.generatePromptStructure(description);
+      const result = await AiService.generatePromptStructure(description);
       return { result, variantId: variant.id, currentConfig: variant.config };
     },
     onSuccess: ({ result, variantId, currentConfig }) => {
@@ -139,7 +138,8 @@ export function useGeneratePromptStructure() {
         );
       }
     },
-    onError: () => {
+    onError: (error) => {
+        console.error("Generate prompt structure failed:", error);
       toast.error('Failed to generate prompt structure');
     }
   });
