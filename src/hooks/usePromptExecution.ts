@@ -60,11 +60,13 @@ export function useOptimizePrompt() {
 
   return useMutation({
     mutationFn: async ({
-      variant
+      variant,
+      model = 'gemini-2.0-flash'
     }: {
       variant: PromptVariant;
+      model?: string;
     }) => {
-      const optimizedContent = await AiService.optimizePrompt(variant.content);
+      const optimizedContent = await AiService.optimizePrompt(variant.content, model);
       return { optimizedContent, variantId: variant.id };
     },
     onSuccess: ({ optimizedContent, variantId }) => {
@@ -99,12 +101,14 @@ export function useGeneratePromptStructure() {
   return useMutation({
     mutationFn: async ({
       description,
-      variant
+      variant,
+      model = 'gemini-2.0-flash'
     }: {
       description: string;
       variant: PromptVariant;
+      model?: string;
     }) => {
-      const result = await AiService.generatePromptStructure(description);
+      const result = await AiService.generatePromptStructure(description, model);
       return { result, variantId: variant.id, currentConfig: variant.config };
     },
     onSuccess: ({ result, variantId, currentConfig }) => {

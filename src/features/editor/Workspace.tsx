@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { PromptData, PromptVariant, Variable } from '../../../../types';
+import { PromptData, PromptVariant, Variable } from '../../../types';
 import { PlayIcon, MagicIcon, CopyIcon, SparklesIcon, KeyboardIcon } from '@/components/Icons';
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs';
@@ -13,8 +13,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDownIcon } from '@radix-ui/react-icons';
 
-// Define custom grammar for variables
 languages.prompt = {
     'project-variable': /@\{\{[\s\S]*?\}\}/,
     'variable': /\{\{[\s\S]*?\}\}/
@@ -31,9 +37,16 @@ interface WorkspaceProps {
     onUpdateProject: (updated: Partial<PromptData>) => void;
     onSave: () => void;
     onRun: () => void;
-    onOptimize: () => void;
-    onGenerateStructure: (description: string) => void;
+    onOptimize: (model?: string) => void;
+    onGenerateStructure: (description: string, model?: string) => void;
 }
+
+const MODELS = [
+    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+    { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
+];
 
 const Workspace: React.FC<WorkspaceProps> = ({
     variant,
@@ -53,31 +66,27 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const [isSaving, setIsSaving] = useState(false);
     const [saveFeedback, setSaveFeedback] = useState(false);
     
-    // Output/Export State
+    const [magicModel, setMagicModel] = useState("gemini-2.0-flash");
+    const [refineModel, setRefineModel] = useState("gemini-2.0-flash");
+
     const [activeOutputTab, setActiveOutputTab] = useState<OutputTab>('OUTPUT');
     const [exportFormat, setExportFormat] = useState<ExportFormat>('JSON');
     const [copyFeedback, setCopyFeedback] = useState(false);
 
-    // Local state for editor content to prevent cursor jumping
     const [code, setCode] = useState(variant.content);
 
-    // Local state for project name to prevent immediate updates
     const [localProjectName, setLocalProjectName] = useState(projectName);
 
-    // Local state for variant name
     const [localVariantName, setLocalVariantName] = useState(variant.name);
 
-    // Automatic variable tracking from content
     const handleUpdateVariables = useCallback((variables: any[]) => {
         onUpdateVariant({ variables });
     }, [onUpdateVariant]);
 
     useVariableTracking(code, variant.variables, handleUpdateVariables);
 
-    // Dirty state tracking
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    // Check for unsaved changes
     useEffect(() => {
         const projectNameChanged = localProjectName !== projectName;
         const variantNameChanged = localVariantName !== variant.name;
@@ -86,24 +95,19 @@ const Workspace: React.FC<WorkspaceProps> = ({
         setHasUnsavedChanges(projectNameChanged || variantNameChanged || contentChanged);
     }, [localProjectName, localVariantName, code, projectName, variant.name, variant.content]);
 
-    // Sync local state when variant changes (switching variants)
     useEffect(() => {
         setCode(variant.content);
         setLocalVariantName(variant.name);
     }, [variant.id]);
 
-    // Sync local project name when prop changes
     useEffect(() => {
         setLocalProjectName(projectName);
     }, [projectName]);
 
-    // Empty State Logic
     const [emptyStateStep, setEmptyStateStep] = useState<'CHOICE' | 'MAGIC' | 'MANUAL'>('CHOICE');
-    // We use an ID for the editor textarea to focus it, as the Editor component might not forward ref easily to the textarea
     const EDITOR_ID = "prompt-editor-textarea";
 
     useEffect(() => {
-        // Reset empty state workflow when switching variants
         if (!variant.content) {
             setEmptyStateStep('CHOICE');
         } else {
@@ -111,20 +115,17 @@ const Workspace: React.FC<WorkspaceProps> = ({
         }
     }, [variant.id]);
 
-    // If content is added (e.g. pasted), automatically switch to manual mode to hide overlay
     useEffect(() => {
         if (variant.content && emptyStateStep !== 'MANUAL') {
             setEmptyStateStep('MANUAL');
         }
     }, [variant.content]);
 
-    // Handle save with feedback
     const handleSave = async () => {
         if (!hasUnsavedChanges) return;
 
         setIsSaving(true);
         try {
-            // Save all changes at once
             const updates: Partial<PromptVariant> = {};
             const projectUpdates: Partial<PromptData> = {};
 
@@ -138,7 +139,6 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 projectUpdates.name = localProjectName;
             }
 
-            // Apply updates
             if (Object.keys(updates).length > 0) {
                 onUpdateVariant(updates);
             }
@@ -146,10 +146,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 onUpdateProject(projectUpdates);
             }
 
-            // Call the parent save function
             onSave();
 
-            // Show feedback
             setSaveFeedback(true);
             setTimeout(() => setSaveFeedback(false), 2000);
         } finally {
@@ -160,14 +158,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
     const handleRun = async () => {
         setIsRunning(true);
-        setActiveOutputTab('OUTPUT'); // Switch to output tab when running
+        setActiveOutputTab('OUTPUT'); 
         await onRun();
         setIsRunning(false);
     };
 
     const handleOptimize = async () => {
         setIsOptimizing(true);
-        await onOptimize();
+        await onOptimize(refineModel);
         setIsOptimizing(false);
     };
 
@@ -175,7 +173,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
         if (!generationDescription.trim()) return;
         setIsGenerating(true);
         try {
-            onGenerateStructure(generationDescription);
+            await onGenerateStructure(generationDescription, magicModel);
             setGenerationDescription('');
         } catch (e) {
             console.error(e);
@@ -199,15 +197,12 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const generateExport = () => {
         const variablesMap = variant.variables.reduce((acc, v) => ({ ...acc, [v.key]: v.value }), {} as Record<string, string>);
 
-        // Replace variables in content for export
         let processedContent = variant.content;
 
-        // First replace @{{}} (project variables)
         projectVariables?.forEach(v => {
             processedContent = processedContent.replace(new RegExp(`@\\{\\{${v.key}\\}\\}`, 'g'), v.value);
         });
 
-        // Then replace {{}} (variant variables)
         variant.variables.forEach(v => {
             processedContent = processedContent.replace(new RegExp(`\\{\\{${v.key}\\}\\}`, 'g'), v.value);
         });
@@ -269,12 +264,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
         if (exportFormat === 'PROMPT') {
             let text = variant.content;
 
-            // First replace @{{}} (project variables)
             projectVariables?.forEach(v => {
                 text = text.replace(new RegExp(`@\\{\\{${v.key}\\}\\}`, 'g'), v.value);
             });
 
-            // Then replace {{}} (variant variables)
             variant.variables.forEach(v => {
                 text = text.replace(new RegExp(`\\{\\{${v.key}\\}\\}`, 'g'), v.value);
             });
@@ -312,10 +305,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
     const showOverlay = !variant.content && emptyStateStep !== 'MANUAL';
 
-    // Split view state
     return (
         <div className="flex-1 flex flex-col h-full bg-background relative overflow-hidden">
-            {/* Top Toolbar */}
             <div className="h-14 border-b border-border flex items-center justify-between px-4 bg-background">
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col gap-0.5">
@@ -376,41 +367,49 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 </div>
             </div>
 
-            {/* Main Content Area - Split View */}
             <div className="flex-1 flex overflow-hidden">
 
-                {/* Editor (Left) */}
                 <div className="flex-1 flex flex-col border-r border-border min-w-[300px] relative">
                     <div className="h-8 bg-background border-b border-border flex items-center justify-between px-4">
                         <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Prompt Template</span>
                         <div className="flex items-center gap-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleOptimize}
-                                disabled={isOptimizing}
-                                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                                title="AI Refine"
-                            >
-                                <MagicIcon className={`w-3 h-3 ${isOptimizing ? 'animate-pulse text-primary' : 'text-primary'}`} />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={copyToClipboard}
-                                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                                title="Copy"
-                            >
-                                <CopyIcon className="w-3 h-3" />
-                            </Button>
+                            <div className="flex items-center">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button className="flex items-center gap-1 px-3 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors h-full focus:outline-none border-r border-border">
+                                            {MODELS.find(m => m.value === refineModel)?.label || "Model"}
+                                            <ChevronDownIcon className="w-3 h-3 opacity-50" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-[180px]">
+                                        {MODELS.map(model => (
+                                            <DropdownMenuItem 
+                                                key={model.value}
+                                                className={`text-xs ${refineModel === model.value ? "bg-accent" : ""}`}
+                                                onClick={() => setRefineModel(model.value)}
+                                            >
+                                                {model.label}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                
+                                <button
+                                    onClick={handleOptimize}
+                                    disabled={isOptimizing}
+                                    className="flex items-center gap-2 px-3 h-full text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                                    title="AI Refine"
+                                >
+                                    <MagicIcon className={`w-3 h-3 ${isOptimizing ? 'animate-pulse text-primary' : 'text-primary'}`} />
+                                    AI Refine
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Empty State Overlay */}
                     {showOverlay && (
                         <div className="absolute inset-0 top-8 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm z-10 p-6 animate-in fade-in duration-200">
 
-                            {/* Step 1: Choice Dialog */}
                             {emptyStateStep === 'CHOICE' && (
                                 <div className="w-full max-w-lg">
                                     <h3 className="text-base font-semibold text-foreground mb-6 text-center">Start a new prompt</h3>
@@ -444,7 +443,6 @@ const Workspace: React.FC<WorkspaceProps> = ({
                                 </div>
                             )}
 
-                            {/* Step 2: Magic Input Card */}
                             {emptyStateStep === 'MAGIC' && (
                                 <div className="w-full max-w-md bg-card border border-border rounded-lg p-5 shadow-2xl animate-in zoom-in-95 duration-300">
                                     <div className="flex items-center justify-between mb-3">
@@ -452,9 +450,30 @@ const Workspace: React.FC<WorkspaceProps> = ({
                                             <SparklesIcon className="w-4 h-4 text-primary" />
                                             Text to Prompt
                                         </h3>
-                                        <button onClick={() => setEmptyStateStep('CHOICE')} className="text-[10px] text-muted-foreground hover:text-foreground">
-                                            Back
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground bg-accent/50 rounded border border-border transition-colors focus:outline-none">
+                                                        {MODELS.find(m => m.value === magicModel)?.label || "Model"}
+                                                        <ChevronDownIcon className="w-3 h-3" />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-[180px]">
+                                                    {MODELS.map(model => (
+                                                        <DropdownMenuItem 
+                                                            key={model.value}
+                                                            className={`text-xs ${magicModel === model.value ? "bg-accent" : ""}`}
+                                                            onClick={() => setMagicModel(model.value)}
+                                                        >
+                                                            {model.label}
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            <button onClick={() => setEmptyStateStep('CHOICE')} className="text-[10px] text-muted-foreground hover:text-foreground">
+                                                Back
+                                            </button>
+                                        </div>
                                     </div>
                                     <p className="text-[11px] text-muted-foreground mb-3">
                                         Describe what you want to achieve, and AI will structure the prompt, system instructions, and variables for you.
@@ -496,14 +515,13 @@ const Workspace: React.FC<WorkspaceProps> = ({
                                 fontFamily: '"Fira Code", "Fira Mono", monospace',
                                 fontSize: 14,
                                 backgroundColor: '#1e1e1e',
-                                color: '#e5e7eb', // gray-200
+                                color: '#e5e7eb',
                                 minHeight: '100%',
                             }}
                         />
                     </div>
                 </div>
 
-                {/* Output & Export (Right) */}
                 <div className="flex-1 flex flex-col min-w-[300px] bg-[#1a1a1a]">
                     <div className="h-8 bg-background border-b border-border flex items-center justify-between px-0">
                         <div className="flex h-full">

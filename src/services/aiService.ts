@@ -56,7 +56,7 @@ export async function runPrompt(
     }
 }
 
-export async function optimizePrompt(content: string): Promise<string> {
+export async function optimizePrompt(content: string, model: string = 'gemini-2.0-flash'): Promise<string> {
     if (!apiKey) {
         throw new Error('Gemini API Key is missing');
     }
@@ -75,7 +75,7 @@ export async function optimizePrompt(content: string): Promise<string> {
     `;
 
         const { text } = await generateText({
-            model: google('gemini-2.0-flash'),
+            model: google(model),
             prompt: metaPrompt,
         });
 
@@ -86,7 +86,7 @@ export async function optimizePrompt(content: string): Promise<string> {
     }
 }
 
-export async function generatePromptStructure(description: string): Promise<{
+export async function generatePromptStructure(description: string, model: string = 'gemini-2.0-flash'): Promise<{
     content: string;
     systemInstruction: string;
     model: string;
@@ -104,7 +104,7 @@ export async function generatePromptStructure(description: string): Promise<{
     `;
 
         const { output } = await generateText({
-            model: google('gemini-2.0-flash'),
+            model: google(model),
             system: systemInstruction,
             prompt: `User Description: "${description}"`,
             output: Output.object({
