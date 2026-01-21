@@ -1,11 +1,11 @@
 import React from 'react';
 import { useAtom } from 'jotai';
-import Sidebar from './src/components/Sidebar';
-import PropertiesPanel from './src/components/PropertiesPanel';
-import Workspace from './src/components/Workspace';
-import TemplateLibraryModal from './src/components/TemplateLibraryModal';
-import VariableLibraryModal from './src/components/VariableLibraryModal';
-import SettingsModal from './src/components/SettingsModal';
+import Sidebar from './src/features/sidebar/Sidebar';
+import PropertiesPanel from './src/features/editor/PropertiesPanel';
+import Workspace from './src/features/editor/Workspace';
+import TemplateLibraryModal from './src/features/modals/TemplateLibraryModal';
+import VariableLibraryModal from './src/features/modals/VariableLibraryModal';
+import SettingsModal from './src/features/modals/SettingsModal';
 import {
   activePromptIdAtom,
   isTemplateModalOpenAtom,
@@ -313,6 +313,7 @@ const App: React.FC = () => {
             <Workspace
               variant={activeVariant}
               projectName={activePrompt.name}
+              projectVariables={activePrompt.projectVariables || []}
               onUpdateVariant={handleUpdateVariant}
               onUpdateProject={handleUpdateProject}
               onSave={handleSaveVariant}

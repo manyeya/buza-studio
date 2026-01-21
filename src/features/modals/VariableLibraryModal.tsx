@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Variable } from '../../types';
-import { XIcon, PlusIcon, DownloadIcon, TrashIcon } from './Icons';
+import { XIcon, PlusIcon, DownloadIcon, TrashIcon } from '@/components/Icons';
 
 interface VariableLibraryModalProps {
   onClose: () => void;

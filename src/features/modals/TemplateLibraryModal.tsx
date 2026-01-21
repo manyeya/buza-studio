@@ -1,6 +1,6 @@
 import React from 'react';
 import { Template } from '../../types';
-import { XIcon, FileTextIcon } from './Icons';
+import { XIcon, FileTextIcon } from '@/components/Icons';
 
 interface TemplateLibraryModalProps {
   onClose: () => void;

@@ -1,192 +1,165 @@
 @import "tailwindcss";
 
-/* Custom theme values */
+/* 
+  Theme Configuration 
+  Refactored to use HSL variables for shadcn/ui compatibility 
+*/
 @theme {
-  --color-spotify-green: #1DB954;
-  --color-spotify-green-light: #1ed760;
-  --color-spotify-green-dark: #169c46;
-  --color-bg-primary: #2c2c2c;
-  --color-bg-secondary: #333333;
-  --color-bg-tertiary: #404040;
-  --color-border-color: #444444;
-  --color-text-muted: #8e8e93;
-  --transition-fast: 150ms;
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  /* Backward compatibility for existing custom utility classes */
+  --color-figma-bg: hsl(var(--background));
+  --color-figma-panel: hsl(var(--card));
+  --color-figma-hover: hsl(var(--accent));
+  --color-figma-border: hsl(var(--border));
+  --color-figma-muted: hsl(var(--muted-foreground));
+  --color-figma-accent: hsl(var(--primary));
+  
+  /* Original aliases if needed explicitly */
+  --color-spotify-green: hsl(141 73% 42%);
+  --color-spotify-green-light: hsl(141 73% 48%); /* Approximated light */
+  --color-spotify-green-dark: hsl(141 73% 36%); /* Approximated dark */
+
+  /* Animation Config */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from { height: 0 }
+    to { height: var(--radix-accordion-content-height) }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height) }
+    to { height: 0 }
+  }
 }
 
-/* Custom utilities */
-@utility bg-figma-bg {
-  background-color: var(--bg-primary);
+/* Base Variables */
+@layer base {
+  :root {
+    /* Background - #2c2c2c -> HSL(0, 0%, 17%) */
+    --background: 0 0% 17%;
+    --foreground: 0 0% 100%;
+
+    /* Card/Panel - #333333 -> HSL(0, 0%, 20%) */
+    --card: 0 0% 20%;
+    --card-foreground: 0 0% 100%;
+
+    /* Popover - Same as Card */
+    --popover: 0 0% 20%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Primary - Spotify Green #1DB954 -> HSL(141, 73%, 42%) */
+    --primary: 141 73% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - #333333 -> HSL(0, 0%, 20%) */
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted/Accent (Hover) - #404040 -> HSL(0, 0%, 25%) */
+    --muted: 0 0% 25%;
+    --muted-foreground: 240 2% 57%; /* #8e8e93 */
+
+    --accent: 0 0% 25%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive - Standard Red */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border/Input - #444444 -> HSL(0, 0%, 27%) */
+    --border: 0 0% 27%;
+    --input: 0 0% 27%;
+    --ring: 141 73% 42%; /* Matching Primary */
+
+    --radius: 0.5rem;
+    
+    /* Legacy Transition Variable */
+    --transition-fast: 150ms;
+  }
 }
 
-@utility bg-figma-panel {
-  background-color: var(--bg-secondary);
-}
-
-@utility bg-figma-hover {
-  background-color: var(--bg-tertiary);
-}
-
-@utility border-figma-border {
-  border-color: var(--border-color);
-}
-
-@utility text-figma-muted {
-  color: var(--text-muted);
-}
-
-@utility text-figma-accent {
-  color: var(--spotify-green);
-}
-
-/* CSS Variables for compatibility with existing components */
-:root {
-  --spotify-green: #1DB954;
-  --spotify-green-light: #1ed760;
-  --spotify-green-dark: #169c46;
-  --bg-primary: #2c2c2c;
-  --bg-secondary: #333333;
-  --bg-tertiary: #404040;
-  --border-color: #444444;
-  --text-muted: #8e8e93;
-  --transition-fast: 150ms;
-}
-
-/* FORCE HEIGHT TO FILL */
-* {
-  box-sizing: border-box;
-  transition: background-color var(--transition-fast) ease,
-    border-color var(--transition-fast) ease,
-    color var(--transition-fast) ease;
-}
-
-html,
-body {
-  height: 100vh !important;
-  overflow: hidden !important;
-}
-
-#root {
-  height: 100vh !important;
-  overflow: hidden !important;
-}
-
+/* Global Styles */
 @layer base {
   * {
-    @apply border-figma-border;
+    @apply border-border;
+  }
+  
+  html, body, #root {
+    height: 100vh;
+    overflow: hidden;
   }
 
   body {
-    @apply bg-figma-bg text-white;
+    @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Override shadcn colors */
-@layer components {
-  .bg-background {
-    background-color: var(--bg-primary) !important;
-  }
-
-  .bg-card {
-    background-color: var(--bg-secondary) !important;
-  }
-
-  .bg-muted {
-    background-color: var(--bg-tertiary) !important;
-  }
-
-  .bg-accent {
-    background-color: var(--bg-tertiary) !important;
-  }
-
-  .text-foreground {
-    color: white !important;
-  }
-
-  .text-card-foreground {
-    color: white !important;
-  }
-
-  .text-muted-foreground {
-    color: var(--text-muted) !important;
-  }
-
-  .text-primary {
-    color: var(--spotify-green) !important;
-  }
-
-  .text-primary-foreground {
-    color: white !important;
-  }
-
-  .text-accent-foreground {
-    color: white !important;
-  }
-
-  .border-input {
-    border-color: var(--border-color) !important;
-  }
-
-  .ring-offset-background {
-    --tw-ring-offset-color: var(--bg-primary) !important;
-  }
-
-  .focus\:ring-ring {
-    --tw-ring-color: var(--spotify-green) !important;
-  }
-
-  /* Primary button styles */
-  .bg-primary {
-    background: var(--spotify-green) !important;
-  }
-
-  .bg-primary:hover {
-    background: var(--spotify-green-light) !important;
-  }
-}
-
-
-
-
-/* Custom scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-tertiary);
+  @apply bg-card;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 4px;
-  transition: background-color var(--transition-fast) ease;
+  @apply bg-border rounded-full transition-colors;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--spotify-green);
+  @apply bg-primary;
 }
 
+/* Utility Classes */
 .no-resize {
   resize: none;
 }
 
-/* Input focus states */
+/* Input Focus States */
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--spotify-green) !important;
-  outline: none !important;
+  @apply border-primary outline-none;
 }
 
 input:hover:not(:focus),
 textarea:hover:not(:focus),
 select:hover:not(:focus) {
-  border-color: var(--spotify-green-dark);
+  border-color: hsl(141 73% 36%); /* Green Dark */
 }
 
-/* Custom select/dropdown styles */
+/* Custom Select */
 select {
   appearance: none;
   -webkit-appearance: none;
@@ -202,23 +175,19 @@ select:hover {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231DB954' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
 }
 
-/* Custom range slider */
+/* Range Slider */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 4px;
-  background: var(--bg-tertiary);
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
+  @apply bg-accent rounded-sm outline-none cursor-pointer;
 }
 
 input[type="range"]::-webkit-slider-track {
   width: 100%;
   height: 4px;
-  background: var(--bg-tertiary);
-  border-radius: 2px;
+  @apply bg-accent rounded-sm;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -226,55 +195,38 @@ input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: var(--spotify-green);
-  cursor: pointer;
-  transition: background-color var(--transition-fast) ease;
+  @apply rounded-full bg-primary cursor-pointer transition-colors;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  background: var(--spotify-green-light);
+  background-color: hsl(141 73% 48%);
 }
 
-input[type="range"]::-moz-range-track {
-  width: 100%;
-  height: 4px;
-  background: var(--bg-tertiary);
-  border-radius: 2px;
-  border: none;
-}
-
-input[type="range"]::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--spotify-green);
-  cursor: pointer;
-  border: none;
-  transition: background-color var(--transition-fast) ease;
-}
-
-input[type="range"]::-moz-range-thumb:hover {
-  background: var(--spotify-green-light);
-}
-
-input[type="range"]:focus {
-  outline: none;
-}
-
-/* Interactive hover states for panels and cards */
+/* Interactive Panels */
 .panel-interactive {
-  transition: background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+  @apply transition-colors duration-150;
 }
 
 .panel-interactive:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--spotify-green);
+  @apply bg-accent border-primary;
 }
 
-/* Active/Selected state with green accent */
 .selected,
 .active {
-  border-color: var(--spotify-green) !important;
-  background-color: rgba(29, 185, 84, 0.1) !important;
+  @apply border-primary;
+  background-color: hsla(141, 73%, 42%, 0.1) !important;
+}
+
+/* Editor Token Styles */
+.token.variable {
+    color: hsl(141, 73%, 42%);
+    font-weight: bold;
+}
+.token.project-variable {
+    color: #FFA500;
+    font-weight: bold;
+}
+/* Override editor styles to match design */
+.prompt-editor-container textarea {
+    outline: none !important;
 }

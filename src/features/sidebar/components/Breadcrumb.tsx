@@ -57,7 +57,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
             {/* Root/Home segment */}
             <button
                 onClick={() => onNavigate(-1)}
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-figma-muted hover:text-white hover:bg-figma-hover transition-colors flex-shrink-0"
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex-shrink-0"
                 title="Go to root"
             >
                 <HomeIcon className="w-3 h-3" />
@@ -71,13 +71,13 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
                 return (
                     <React.Fragment key={index}>
                         {/* Separator */}
-                        <ChevronRightIcon className="w-3 h-3 text-figma-muted flex-shrink-0" />
+                        <ChevronRightIcon className="w-3 h-3 text-muted-foreground flex-shrink-0" />
 
                         {/* Segment */}
                         {isLast ? (
                             // Current folder (not clickable)
                             <span
-                                className="px-1.5 py-0.5 text-white font-medium truncate max-w-[120px]"
+                                className="px-1.5 py-0.5 text-foreground font-medium truncate max-w-[120px]"
                                 title={segment}
                             >
                                 {segment}
@@ -86,7 +86,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
                             // Parent folder (clickable)
                             <button
                                 onClick={() => onNavigate(index)}
-                                className="px-1.5 py-0.5 rounded text-figma-muted hover:text-white hover:bg-figma-hover transition-colors truncate max-w-[120px]"
+                                className="px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors truncate max-w-[120px]"
                                 title={`Go to ${segment}`}
                             >
                                 {segment}

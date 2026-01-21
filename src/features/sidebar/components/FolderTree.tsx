@@ -22,15 +22,15 @@ import {
     useSensors,
 } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
-import { FileTextIcon, ChevronDownIcon, TrashIcon } from './Icons';
-import { Button } from './ui/button';
+import { FileTextIcon, ChevronDownIcon, TrashIcon } from '@/components/Icons';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import {
     Dialog,
     DialogContent,
@@ -38,7 +38,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from './ui/dialog';
+} from '@/components/ui/dialog';
 import { DotsVerticalIcon } from '@radix-ui/react-icons';
 import { PencilIcon, FolderIcon, FolderOpenIcon, MoveIcon, GripVerticalIcon } from 'lucide-react';
 import type { FolderItem } from '@/lib/folder-system';
@@ -178,11 +178,11 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                 ref={!isDragOverlay ? setNodeRef : undefined}
                 className={cn(
                     'group flex items-center transition-colors overflow-hidden',
-                    isFolder && isOver && 'bg-figma-accent/20 ring-1 ring-figma-accent ring-inset',
+                    isFolder && isOver && 'bg-primary/20 ring-1 ring-primary ring-inset',
                     isDragging && !isDragOverlay && 'opacity-30',
-                    isDragOverlay && 'opacity-90 bg-figma-panel shadow-lg rounded',
-                    isActiveProject && !isDragging && 'bg-figma-hover',
-                    !isActiveProject && !isOver && !isDragging && 'hover:bg-figma-bg/50'
+                    isDragOverlay && 'opacity-90 bg-popover shadow-lg rounded',
+                    isActiveProject && !isDragging && 'bg-accent',
+                    !isActiveProject && !isOver && !isDragging && 'hover:bg-background/50'
                 )}
             >
                 {/* Drag handle */}
@@ -195,7 +195,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                     {...listeners}
                     {...attributes}
                 >
-                    <GripVerticalIcon className="w-3 h-3 text-figma-muted" />
+                    <GripVerticalIcon className="w-3 h-3 text-muted-foreground" />
                 </div>
                 <div
                     className="flex-1 flex items-center px-1 py-1 cursor-pointer min-w-0 overflow-hidden"
@@ -208,11 +208,11 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                                 e.stopPropagation();
                                 onToggle();
                             }}
-                            className="p-0.5 mr-1 hover:bg-figma-hover rounded"
+                            className="p-0.5 mr-1 hover:bg-accent rounded"
                         >
                             <ChevronDownIcon
                                 className={cn(
-                                    'w-3 h-3 text-figma-muted transition-transform',
+                                    'w-3 h-3 text-muted-foreground transition-transform',
                                     !isExpanded && '-rotate-90'
                                 )}
                             />
@@ -223,15 +223,15 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
 
                     {isFolder ? (
                         isExpanded ? (
-                            <FolderOpenIcon className="w-3.5 h-3.5 mr-2 text-figma-muted flex-shrink-0" />
+                            <FolderOpenIcon className="w-3.5 h-3.5 mr-2 text-muted-foreground flex-shrink-0" />
                         ) : (
-                            <FolderIcon className="w-3.5 h-3.5 mr-2 text-figma-muted flex-shrink-0" />
+                            <FolderIcon className="w-3.5 h-3.5 mr-2 text-muted-foreground flex-shrink-0" />
                         )
                     ) : (
                         <FileTextIcon
                             className={cn(
                                 'w-3.5 h-3.5 mr-2 flex-shrink-0',
-                                isActiveProject ? 'text-figma-accent' : 'text-figma-muted'
+                                isActiveProject ? 'text-primary' : 'text-muted-foreground'
                             )}
                         />
                     )}
@@ -246,7 +246,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                                 if (e.key === 'Enter') handleSaveRename();
                                 if (e.key === 'Escape') handleCancelRename();
                             }}
-                            className="flex-1 min-w-0 bg-figma-bg border border-figma-border rounded px-1.5 py-0.5 text-xs text-white focus:border-figma-accent outline-none"
+                            className="flex-1 min-w-0 bg-background border border-border rounded px-1.5 py-0.5 text-xs text-white focus:border-figma-accent outline-none"
                             autoFocus
                             onClick={(e) => e.stopPropagation()}
                         />
@@ -254,7 +254,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                         <span
                             className={cn(
                                 'text-xs truncate min-w-0 flex-1',
-                                isActiveProject ? 'text-figma-accent font-medium' : 'text-white'
+                                isActiveProject ? 'text-primary font-medium' : 'text-white'
                             )}
                             title={item.name}
                         >
@@ -273,25 +273,25 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                                     className="h-6 w-6"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <DotsVerticalIcon className="w-3 h-3 text-figma-muted hover:text-white" />
+                                    <DotsVerticalIcon className="w-3 h-3 text-muted-foreground hover:text-white" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
-                                className="min-w-[140px] bg-figma-panel border border-figma-border rounded shadow-lg"
+                                className="min-w-[140px] bg-popover border border-border rounded shadow-lg"
                                 align="end"
                             >
                                 {isFolder && (
                                     <>
                                         <DropdownMenuItem
                                             onClick={handleStartRename}
-                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-accent focus:bg-accent cursor-pointer"
                                         >
                                             <PencilIcon className="w-3 h-3" />
                                             Rename
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                             onClick={() => setShowMoveModal(true)}
-                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-accent focus:bg-accent cursor-pointer"
                                         >
                                             <MoveIcon className="w-3 h-3" />
                                             Move to Folder
@@ -299,7 +299,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                                         <DropdownMenuSeparator className="bg-figma-border" />
                                         <DropdownMenuItem
                                             onClick={() => setShowDeleteConfirm(true)}
-                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-accent focus:bg-accent cursor-pointer"
                                         >
                                             <TrashIcon className="w-3 h-3" />
                                             Delete
@@ -310,7 +310,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                                     <>
                                         <DropdownMenuItem
                                             onClick={() => setShowMoveModal(true)}
-                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-accent focus:bg-accent cursor-pointer"
                                         >
                                             <MoveIcon className="w-3 h-3" />
                                             Move to Folder
@@ -318,7 +318,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                                         <DropdownMenuSeparator className="bg-figma-border" />
                                         <DropdownMenuItem
                                             onClick={() => setShowDeleteConfirm(true)}
-                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-figma-hover focus:bg-figma-hover cursor-pointer"
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-accent focus:bg-accent cursor-pointer"
                                         >
                                             <TrashIcon className="w-3 h-3" />
                                             Delete
@@ -342,12 +342,12 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
             />
 
             <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                <DialogContent className="bg-figma-panel border-figma-border max-w-sm">
+                <DialogContent className="bg-popover border-border max-w-sm">
                     <DialogHeader>
                         <DialogTitle className="text-white">
                             Delete {isFolder ? 'Folder' : 'Project'}
                         </DialogTitle>
-                        <DialogDescription className="text-figma-muted">
+                        <DialogDescription className="text-muted-foreground">
                             {isFolder
                                 ? `Are you sure you want to delete "${item.name}"? Any contents will be moved to the parent folder.`
                                 : `Are you sure you want to delete "${item.name}"? This action cannot be undone.`
@@ -358,7 +358,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
                         <Button
                             variant="ghost"
                             onClick={() => setShowDeleteConfirm(false)}
-                            className="text-figma-muted hover:text-white"
+                            className="text-muted-foreground hover:text-white"
                         >
                             Cancel
                         </Button>
@@ -433,7 +433,7 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
                 <div
                     className={cn(
                         'flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded transition-colors overflow-hidden',
-                        isSelected ? 'bg-figma-accent/20 text-figma-accent' : 'hover:bg-figma-hover text-white'
+                        isSelected ? 'bg-primary/20 text-primary' : 'hover:bg-accent text-white'
                     )}
                     style={{ paddingLeft: `${level * 16 + 8}px` }}
                     onClick={() => setSelectedPath(item.path)}
@@ -444,7 +444,7 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
                                 e.stopPropagation();
                                 toggleExpanded(item.path);
                             }}
-                            className="p-0.5 hover:bg-figma-hover rounded flex-shrink-0"
+                            className="p-0.5 hover:bg-accent rounded flex-shrink-0"
                         >
                             <ChevronDownIcon
                                 className={cn(
@@ -455,7 +455,7 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
                         </button>
                     )}
                     {children.length === 0 && <div className="w-4 flex-shrink-0" />}
-                    <FolderIcon className="w-4 h-4 text-figma-muted flex-shrink-0" />
+                    <FolderIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-sm truncate min-w-0 flex-1" title={item.name}>{item.name}</span>
                 </div>
                 {isExpanded && children.map(child => renderFolderItem(child, level + 1))}
@@ -467,31 +467,31 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="bg-figma-panel border-figma-border max-w-sm">
+            <DialogContent className="bg-popover border-border max-w-sm">
                 <DialogHeader>
                     <DialogTitle className="text-white">{title}</DialogTitle>
-                    <DialogDescription className="text-figma-muted">
+                    <DialogDescription className="text-muted-foreground">
                         Select a destination folder or move to root level.
                     </DialogDescription>
                 </DialogHeader>
                 
-                <div className="max-h-64 overflow-y-auto border border-figma-border rounded bg-figma-bg">
+                <div className="max-h-64 overflow-y-auto border border-border rounded bg-background">
                     <div
                         className={cn(
                             'flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded transition-colors',
-                            selectedPath === null ? 'bg-figma-accent/20 text-figma-accent' : 'hover:bg-figma-hover text-white'
+                            selectedPath === null ? 'bg-primary/20 text-primary' : 'hover:bg-accent text-white'
                         )}
                         onClick={() => setSelectedPath(null)}
                     >
                         <div className="w-4" />
-                        <FolderIcon className="w-4 h-4 text-figma-muted" />
+                        <FolderIcon className="w-4 h-4 text-muted-foreground" />
                         <span className="text-sm">Root (No folder)</span>
                     </div>
                     
                     {folderItems.map(item => renderFolderItem(item))}
                     
                     {folderItems.length === 0 && (
-                        <div className="px-4 py-3 text-sm text-figma-muted italic">
+                        <div className="px-4 py-3 text-sm text-muted-foreground italic">
                             No folders available
                         </div>
                     )}
@@ -501,7 +501,7 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
                     <Button
                         variant="ghost"
                         onClick={onClose}
-                        className="text-figma-muted hover:text-white"
+                        className="text-muted-foreground hover:text-white"
                     >
                         Cancel
                     </Button>
@@ -544,8 +544,8 @@ const RootDropZone: React.FC<RootDropZoneProps> = ({ children, isDragging }) => 
                     className={cn(
                         'mx-2 mt-1 px-3 py-2 rounded border-2 border-dashed transition-colors flex items-center gap-2',
                         isOver 
-                            ? 'border-figma-accent bg-figma-accent/20 text-figma-accent' 
-                            : 'border-figma-border text-figma-muted'
+                            ? 'border-figma-accent bg-primary/20 text-primary' 
+                            : 'border-border text-muted-foreground'
                     )}
                 >
                     <FolderIcon className="w-3.5 h-3.5" />
@@ -718,7 +718,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
         return (
             <DndContext sensors={sensors}>
                 <RootDropZone isDragging={isDragging}>
-                    <div className="px-4 py-6 text-xs text-figma-muted text-center italic">
+                    <div className="px-4 py-6 text-xs text-muted-foreground text-center italic">
                         No projects yet. Create your first project!
                     </div>
                 </RootDropZone>
