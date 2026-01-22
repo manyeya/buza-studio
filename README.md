@@ -9,7 +9,6 @@
     <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=flat&logo=tailwindcss&logoColor=white" alt="TailwindCSS" /></a>
   </p>
 </div>
-
 <br />
 
 **Buza Studio** is a local-first prompt engineering environment designed for developers and AI engineers. It offers a distraction-free workspace for crafting, testing, and optimizing LLM prompts with complete data privacy.
