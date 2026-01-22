@@ -2,7 +2,6 @@
   <img src="public/logo.svg" width="120" height="120" alt="Buza Studio Logo" />
   <h1>Buza Studio</h1>
   <p><strong>The Obsidian for your prompts</strong></p>
-  
   <p>
     <a href="https://tauri.app"><img src="https://img.shields.io/badge/Tauri-2.0-FEC130?style=flat&logo=tauri&logoColor=black" alt="Tauri" /></a>
     <a href="https://react.dev"><img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black" alt="React" /></a>
@@ -65,7 +64,7 @@ Just like Obsidian changed how we take notes, Buza Studio aims to change how we 
 3. **Set up Environment**
    Create a `.env` file in the root directory and add your API keys:
    ```env
-   VITE_GEMINI_API_KEY=your_api_key_here
+   GEMINI_API_KEY=your_api_key_here
    ```
 
 ### Running Locally
